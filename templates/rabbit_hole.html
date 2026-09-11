@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historical Archives</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #03060c;
+      color: #cfd9e5;
+      font-family: Georgia, serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 180px;
+      line-height: 1.9;
+      position: relative;
+    }
+
+    .article-shell {
+      width: 100%;
+      max-width: 780px;
+      position: relative;
+    }
+
+    .topic-pill {
+      font-family: monospace;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: 0.8rem;
+      color: #00ffff;
+      margin-bottom: 14px;
+      display: inline-block;
+    }
+
+    h1.article-title {
+      font-size: 2.3rem;
+      color: #ffffff;
+      line-height: 1.3;
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 18px;
+    }
+
+    .article-body p {
+      font-size: 1.16rem;
+      color: #b8c4d2;
+      margin-bottom: 36px;
+      text-align: justify;
+      white-space: pre-line;
+    }
+
+    .article-body h3 {
+      color: #ffffff;
+      font-size: 1.35rem;
+      margin: 36px 0 16px;
+      font-family: Georgia, serif;
+    }
+
+    /* Page 1: Fixed Button on Middle Right Edge */
+    .btn-edge-right {
+      position: fixed;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #081220;
+      color: #00ffff;
+      border: 1px solid rgba(0, 255, 255, 0.4);
+      border-right: none;
+      padding: 14px 20px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      border-radius: 6px 0 0 6px;
+      cursor: pointer;
+      box-shadow: -4px 0 20px rgba(0, 255, 255, 0.2);
+      transition: all 0.2s;
+      z-index: 100;
+    }
+    .btn-edge-right:hover {
+      background: #00ffff;
+      color: #020408;
+      box-shadow: -4px 0 25px rgba(0, 255, 255, 0.6);
+    }
+
+    /* Page 2: Fixed Button on Middle Left Edge */
+    .btn-edge-left {
+      position: fixed;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #081220;
+      color: #00ffff;
+      border: 1px solid rgba(0, 255, 255, 0.4);
+      border-left: none;
+      padding: 14px 20px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      border-radius: 0 6px 6px 0;
+      cursor: pointer;
+      box-shadow: 4px 0 20px rgba(0, 255, 255, 0.2);
+      transition: all 0.2s;
+      z-index: 100;
+    }
+    .btn-edge-left:hover {
+      background: #00ffff;
+      color: #020408;
+      box-shadow: 4px 0 25px rgba(0, 255, 255, 0.6);
+    }
+
+    /* Page 3: Analytical Subheading Button */
+    .btn-disguised-heading {
+      font-family: Georgia, serif;
+      font-size: 1.35rem;
+      color: #ffffff;
+      margin: 36px 0 16px;
+      cursor: pointer;
+      display: inline-block;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.25);
+      transition: color 0.2s;
+    }
+    .btn-disguised-heading:hover {
+      color: #00ffff;
+      border-bottom-color: #00ffff;
+    }
+
+    /* Bottom Clue Note for Chamber 3 */
+    .chamber3-clue {
+      margin-top: 50px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-family: monospace;
+      font-size: 0.95rem;
+      color: #ffaa00;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    /* EXIT MODAL (In Tab 2 only - purely instructions, NO QUIZ MODALS) */
+    #exit-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 4, 8, 0.96);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      padding: 20px;
+      text-align: center;
+    }
+    #exit-modal.active { display: flex; }
+    .exit-card {
+      background: #080e1a;
+      border: 1px solid #00ffff;
+      box-shadow: 0 0 35px rgba(0, 255, 255, 0.3);
+      padding: 40px;
+      border-radius: 8px;
+      max-width: 500px;
+    }
+    .exit-card h2 {
+      color: #00ffff;
+      font-size: 1.8rem;
+      font-family: monospace;
+      margin-bottom: 14px;
+    }
+    .exit-card p {
+      color: #cfd9e5;
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .close-hint {
+      display: inline-block;
+      background: #ff3366;
+      color: #fff;
+      font-family: monospace;
+      font-size: 0.9rem;
+      font-weight: bold;
+      padding: 12px 24px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="article-shell" id="articleShell">
+    <div class="topic-pill" id="topicBadge">DOCUMENT ARCHIVE</div>
+    <h1 class="article-title" id="pageTitle">Retrieving Historical Dossier...</h1>
+    
+    <div class="article-body" id="articleBody">
+      <p id="upperParagraph">Consulting international records...</p>
+      <div id="subheadingBlock"></div>
+      <p id="lowerParagraph"></p>
+    </div>
+
+    <div id="chamber3ClueLine" class="chamber3-clue" style="display:none;">
+      You have to find the hidden exit button
+    </div>
+  </div>
+
+  <div id="buttonContainer"></div>
+
+  <!-- EXIT MODAL -->
+  <div id="exit-modal">
+    <div class="exit-card">
+      <h2>ARCHIVE EXHAUSTED</h2>
+      <p>You have navigated through all recorded anomalies and unlocked the central terminal.</p>
+      <div class="close-hint">You may go to home page by closing this tab.</div>
+    </div>
+  </div>
+
+  <script>
+    let rabbitData = null;
+    let completedNormally = false;
+    const channel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('rabbit_hole_channel') : null;
+
+    window.addEventListener('beforeunload', () => {
+      if (!completedNormally && localStorage.getItem('rabbit_status') === 'IN_PROGRESS') {
+        if (channel) channel.postMessage({ type: 'TAB_CLOSED_PREMATURE' });
+      }
+    });
+
+    async function loadContent() {
+      try {
+        const res = await fetch('/api/rabbit/generate');
+        const json = await res.json();
+        rabbitData = json.data;
+
+        localStorage.setItem('rabbit_payload', JSON.stringify(rabbitData));
+        renderPage(1);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderPage(pageNum) {
+      window.scrollTo(0, 0);
+      const pData = rabbitData.pages.find(p => p.page === pageNum);
+
+      document.getElementById('topicBadge').textContent = `SECTION ${pageNum} OF 3 — ${rabbitData.topic.toUpperCase()}`;
+      document.getElementById('pageTitle').textContent = pData.title;
+      document.getElementById('upperParagraph').textContent = pData.upper_content;
+      document.getElementById('lowerParagraph').textContent = pData.lower_content;
+
+      const subheadBlock = document.getElementById('subheadingBlock');
+      const btnContainer = document.getElementById('buttonContainer');
+      const clueLine = document.getElementById('chamber3ClueLine');
+
+      subheadBlock.innerHTML = '';
+      btnContainer.innerHTML = '';
+      clueLine.style.display = 'none';
+
+      if (pageNum === 1) {
+        const b = document.createElement('button');
+        b.className = 'btn-edge-right';
+        b.textContent = 'PROCEED →';
+        b.onclick = () => renderPage(2);
+        btnContainer.appendChild(b);
+
+      } else if (pageNum === 2) {
+        const b = document.createElement('button');
+        b.className = 'btn-edge-left';
+        b.textContent = '← ADVANCE';
+        b.onclick = () => renderPage(3);
+        btnContainer.appendChild(b);
+
+      } else if (pageNum === 3) {
+        const h = document.createElement('h3');
+        h.className = 'btn-disguised-heading';
+        h.textContent = '3.2 Contextual Discrepancies and Aftermath';
+        h.onclick = triggerUnlock;
+        subheadBlock.appendChild(h);
+
+        clueLine.style.display = 'block';
+      }
+    }
+
+    function triggerUnlock() {
+      completedNormally = true;
+      if (channel) {
+        channel.postMessage({ type: 'UNLOCKED' });
+      }
+      document.getElementById('exit-modal').classList.add('active');
+    }
+
+    loadContent();
+  </script>
+</body>
+</html>

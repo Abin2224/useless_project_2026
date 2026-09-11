@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cosmic Stack Calculator</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>COSMIC STACK</h1>
+    <p class="tagline">Enter any two places and any object to calculate the number of objects needed to cover the distance.</p>
+  </header>
+
+  <main class="main-layout">
+    <section class="control-panel">
+      <div class="input-grid">
+        <div class="input-col">
+          <div class="field-block">
+            <label>Starting Point (City or Planet)</label>
+            <input type="text" id="originInput" value="Tokyo" placeholder="e.g. Kozhikode, Earth, Mars">
+          </div>
+          <div class="field-block">
+            <label>Destination Point</label>
+            <input type="text" id="destInput" value="London" placeholder="e.g. Moon, London">
+          </div>
+        </div>
+        <div class="input-col">
+          <div class="field-block">
+            <label>Measurement Object</label>
+            <input type="text" id="objectInput" value="Barack Obama" placeholder="e.g. Coin, iPhone 15, Blue Whale">
+          </div>
+        </div>
+      </div>
+      <div class="action-row">
+        <button id="findOutBtn">Calculate Stack</button>
+      </div>
+    </section>
+
+    <section id="viewport-stage">
+      <div id="canvas-container"></div>
+      <div class="stage-legend" id="stageLegend">Awaiting input...</div>
+    </section>
+
+    <section class="results-panel" id="resultsBox">
+      <h2 id="resultHeadline">Ready to calculate.</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Total Items Needed</span>
+          <span class="stat-val highlight" id="statCount">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Distance</span>
+          <span class="stat-val" id="statDistance">0 km</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Object Length</span>
+          <span class="stat-val" id="statStride">0 m</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

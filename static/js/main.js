@@ -1,0 +1,284 @@
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020408);
+
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+camera.position.set(0, 5, 28);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+dirLight.position.set(15, 25, 20);
+scene.add(dirLight);
+
+const activeStageGroup = new THREE.Group();
+scene.add(activeStageGroup);
+
+let currentStackMeshes = [];
+let fillProgress = 0;
+
+function latLonToVector3(lat, lon, radius) {
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
+  return new THREE.Vector3(
+    -(radius * Math.sin(phi) * Math.cos(theta)),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+const textureLoader = new THREE.TextureLoader();
+const earthAlbedoMap = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+
+function createPinMesh() {
+  const pinGroup = new THREE.Group();
+  
+  const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+  const headMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 1.0;
+  pinGroup.add(head);
+
+  const glowGeo = new THREE.SphereGeometry(0.7, 16, 16);
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.4 });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.y = 1.0;
+  pinGroup.add(glow);
+
+  const stemGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.0, 8);
+  const stemMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const stem = new THREE.Mesh(stemGeo, stemMat);
+  stem.position.y = 0.5;
+  pinGroup.add(stem);
+
+  return pinGroup;
+}
+
+function createPlanetTexture(baseColorHex, spotColorHex) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = baseColorHex;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = spotColorHex;
+  for (let i = 0; i < 30; i++) {
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const r = 15 + Math.random() * 40;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const planetTextures = {
+  mars: createPlanetTexture('#c1440e', '#872300'),
+  moon: createPlanetTexture('#888888', '#555555'),
+  jupiter: createPlanetTexture('#d4a373', '#bc6c25'),
+  venus: createPlanetTexture('#e3bb76', '#b08968'),
+  sun: createPlanetTexture('#ffb703', '#fb8500')
+};
+
+function createPlanetMesh(name, radius) {
+  const key = name.toLowerCase();
+  if (key === 'earth') {
+    const geo = new THREE.SphereGeometry(radius, 64, 64);
+    const mat = new THREE.MeshStandardMaterial({ map: earthAlbedoMap, roughness: 0.6, metalness: 0.1 });
+    return new THREE.Mesh(geo, mat);
+  }
+  const tex = planetTextures[key] || planetTextures.mars;
+  const geo = new THREE.SphereGeometry(radius, 32, 32);
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7 });
+  return new THREE.Mesh(geo, mat);
+}
+
+function renderScene(data) {
+  while (activeStageGroup.children.length > 0) {
+    activeStageGroup.remove(activeStageGroup.children[0]);
+  }
+  currentStackMeshes = [];
+  fillProgress = 0;
+
+  const sampleCount = 30;
+  const startX = -11.0;
+  const endX = 11.0;
+  const planetRadius = 2.5;
+  
+  camera.position.set(0, 4, 30);
+  camera.lookAt(0, 0, 0);
+
+  // Reusable function to build the straight bridge
+  function buildStraightBridge() {
+    // Start slightly outside the planet geometry to avoid clipping
+    const edgeStart = startX + 2.6; 
+    const edgeEnd = endX - 2.6;
+
+    for (let i = 0; i < sampleCount; i++) {
+      const t = (i + 1) / (sampleCount + 1);
+      const x = THREE.MathUtils.lerp(edgeStart, edgeEnd, t);
+      const y = 0; // Perfectly straight line on the Y axis
+      const z = 0; // Perfectly straight line on the Z axis
+
+      const boxGeo = new THREE.BoxGeometry(0.5, 0.22, 0.22);
+      const boxMat = new THREE.MeshStandardMaterial({ color: 0x223344, roughness: 0.4 });
+      const mesh = new THREE.Mesh(boxGeo, boxMat);
+      mesh.position.set(x, y, z);
+
+      activeStageGroup.add(mesh);
+      currentStackMeshes.push(mesh);
+    }
+  }
+
+  if (data.mode === "terrestrial") {
+    document.getElementById('stageLegend').textContent = `Mode: Earth-to-Earth (${data.origin.name} → ${data.destination.name})`;
+
+    const earth1 = createPlanetMesh('earth', planetRadius);
+    earth1.position.set(startX, 0, 0);
+    const v1 = latLonToVector3(data.origin.coords.lat, data.origin.coords.lon, planetRadius);
+    const pin1 = createPinMesh();
+    pin1.position.copy(v1);
+    pin1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v1.clone().normalize());
+    earth1.add(pin1);
+    earth1.quaternion.setFromUnitVectors(v1.clone().normalize(), new THREE.Vector3(0, 0, 1));
+    activeStageGroup.add(earth1);
+
+    const earth2 = createPlanetMesh('earth', planetRadius);
+    earth2.position.set(endX, 0, 0);
+    const v2 = latLonToVector3(data.destination.coords.lat, data.destination.coords.lon, planetRadius);
+    const pin2 = createPinMesh();
+    pin2.position.copy(v2);
+    pin2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v2.clone().normalize());
+    earth2.add(pin2);
+    earth2.quaternion.setFromUnitVectors(v2.clone().normalize(), new THREE.Vector3(0, 0, 1));
+    activeStageGroup.add(earth2);
+
+    buildStraightBridge();
+
+  } else if (data.mode === "hybrid") {
+    document.getElementById('stageLegend').textContent = `Mode: Hybrid (${data.origin.name} → ${data.destination.name})`;
+    const isOriginCity = data.origin.type === "city";
+    
+    if (isOriginCity) {
+      const earth = createPlanetMesh('earth', planetRadius);
+      earth.position.set(startX, 0, 0);
+      const v = latLonToVector3(data.origin.coords.lat, data.origin.coords.lon, planetRadius);
+      const pin = createPinMesh();
+      pin.position.copy(v);
+      pin.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.clone().normalize());
+      earth.add(pin);
+      earth.quaternion.setFromUnitVectors(v.clone().normalize(), new THREE.Vector3(0, 0, 1));
+      activeStageGroup.add(earth);
+    } else {
+      const planet = createPlanetMesh(data.origin.name, planetRadius);
+      planet.position.set(startX, 0, 0);
+      activeStageGroup.add(planet);
+    }
+
+    if (!isOriginCity) {
+      const earth = createPlanetMesh('earth', planetRadius);
+      earth.position.set(endX, 0, 0);
+      const v = latLonToVector3(data.destination.coords.lat, data.destination.coords.lon, planetRadius);
+      const pin = createPinMesh();
+      pin.position.copy(v);
+      pin.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.clone().normalize());
+      earth.add(pin);
+      earth.quaternion.setFromUnitVectors(v.clone().normalize(), new THREE.Vector3(0, 0, 1));
+      activeStageGroup.add(earth);
+    } else {
+      const planet = createPlanetMesh(data.destination.name, planetRadius);
+      planet.position.set(endX, 0, 0);
+      activeStageGroup.add(planet);
+    }
+
+    buildStraightBridge();
+
+  } else {
+    document.getElementById('stageLegend').textContent = `Mode: Interplanetary (${data.origin.name} → ${data.destination.name})`;
+
+    const planet1 = createPlanetMesh(data.origin.name, planetRadius);
+    planet1.position.set(startX, 0, 0);
+    activeStageGroup.add(planet1);
+
+    const planet2 = createPlanetMesh(data.destination.name, 2.0); // Make destination slightly smaller visually
+    planet2.position.set(endX, 0, 0);
+    activeStageGroup.add(planet2);
+
+    buildStraightBridge();
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (currentStackMeshes.length > 0) {
+    fillProgress += 0.012; 
+    if (fillProgress > 1.3) {
+      fillProgress = 0; 
+    }
+
+    const visibleLimit = Math.floor(Math.min(fillProgress, 1.0) * currentStackMeshes.length);
+
+    currentStackMeshes.forEach((mesh, idx) => {
+      if (idx <= visibleLimit) {
+        mesh.material.color.setHex(0x00ffff);
+        mesh.material.emissive.setHex(0x0088cc);
+      } else {
+        mesh.material.color.setHex(0x223344);
+        mesh.material.emissive.setHex(0x000000);
+      }
+    });
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+document.getElementById('findOutBtn').addEventListener('click', async () => {
+  const headline = document.getElementById('resultHeadline');
+  headline.textContent = "Calculating distance & stack...";
+  
+  try {
+    const res = await fetch('/api/calculate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origin: document.getElementById('originInput').value,
+        destination: document.getElementById('destInput').value,
+        measurement_object: document.getElementById('objectInput').value
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      headline.textContent = data.error || "Error calculating.";
+      return;
+    }
+
+    headline.innerHTML = `It takes <span class="highlight">${data.total_count.toLocaleString()}</span> ${data.object.name}s to span from ${data.origin.name} to ${data.destination.name}.`;
+    
+    document.getElementById('statCount').textContent = data.total_count.toLocaleString();
+    document.getElementById('statDistance').textContent = `${data.distance_km.toLocaleString()} km`;
+    document.getElementById('statStride').textContent = `${data.object.dimension_meters} m`;
+
+    renderScene(data);
+  } catch (err) {
+    console.error("Calculation failed:", err);
+    headline.textContent = "Server connection error.";
+  }
+});
+
+window.addEventListener('load', () => document.getElementById('findOutBtn').click());
+
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});

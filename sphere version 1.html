@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sphere Vegas Replica</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #030305;
+      font-family: monospace;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+    }
+    #ui {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: #888;
+      font-size: 12px;
+      pointer-events: none;
+    }
+  </style>
+  <!-- Import Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="ui">Drag to rotate | Scroll to zoom</div>
+
+  <script>
+    // --- 1. Scene & Renderer Setup ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(0, 15, 45);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 + 0.05; // Prevent camera from going under ground
+
+    // --- 2. Ground & Environment ---
+    // Subtle asphalt tarmac ring like the Vegas venue
+    const groundGeo = new THREE.PlaneGeometry(200, 200);
+    const groundMat = new THREE.MeshStandardMaterial({ 
+      color: 0x08080a, 
+      roughness: 0.9, 
+      metalness: 0.1 
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.01;
+    scene.add(ground);
+
+    // --- 3. Truncated Sphere Geometry ---
+    // Vegas Sphere dimensions ratio: width ~516ft, height ~366ft
+    // We truncate the bottom by setting thetaLength to 2.3 radians (~132 degrees)
+    const radius = 15;
+    const widthSegments = 128;
+    const heightSegments = 64;
+    const phiStart = 0;
+    const phiLength = Math.PI * 2;
+    const thetaStart = 0;
+    const thetaLength = 2.32; // Cut off before bottom pole
+
+    const sphereGeo = new THREE.SphereGeometry(
+      radius,
+      widthSegments,
+      heightSegments,
+      phiStart,
+      phiLength,
+      thetaStart,
+      thetaLength
+    );
+
+    // Offset sphere upward so its truncated rim rests flat on the ground plane
+    const cutoffOffset = Math.cos(thetaLength) * radius; // z/y coordinate at base cutoff
+    sphereGeo.translate(0, -cutoffOffset, 0);
+
+    // --- 4. Custom LED Puck Shader ---
+    // Simulates individual programmable LED modules (1.2M pucks)
+    const sphereShaderMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uLedDensity: { value: new THREE.Vector2(320.0, 160.0) }, // LED puck resolution
+        uPuckSize: { value: 0.72 }, // Ratio of active LED vs black bezel (0.0 to 1.0)
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec2 uLedDensity;
+        uniform float uPuckSize;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        // Procedural animated visual representing the Sphere content
+        // (You can replace this logic with texture2D(uTexture, gridUv))
+        vec3 generateSphereContent(vec2 uv, float t) {
+          // Centered eye/orb dynamic graphic commonly displayed on the Sphere
+          vec2 p = uv * 2.0 - 1.0;
+          p.x *= 1.5; // aspect stretch correction
+          float r = length(p);
+          
+          // Concentric pulsing rings
+          float ring = sin(r * 18.0 - t * 3.0);
+          
+          // Color palettes
+          vec3 col1 = vec3(1.0, 0.2, 0.05); // Neon Orange
+          vec3 col2 = vec3(0.05, 0.6, 1.0); // Cyan Blue
+          vec3 col3 = vec3(0.9, 0.0, 0.4); // Magenta
+          
+          vec3 col = mix(col1, col2, 0.5 + 0.5 * sin(t + p.x * 2.0));
+          col = mix(col, col3, step(0.6, ring));
+          
+          // Central dynamic core
+          if (r < 0.35) {
+            col = mix(vec3(1.0, 1.0, 1.0), col1, r / 0.35);
+          }
+          return col;
+        }
+
+        void main() {
+          // 1. Discretize UVs to locate each LED puck cell
+          vec2 puckCount = uLedDensity;
+          vec2 cellCoord = floor(vUv * puckCount);
+          vec2 cellUv = fract(vUv * puckCount) * 2.0 - 1.0; // [-1.0, 1.0] within cell
+          
+          // Center UV for sampling the source graphic per puck
+          vec2 sampleUv = (cellCoord + 0.5) / puckCount;
+
+          // 2. Shape the circular LED puck
+          float dist = length(cellUv);
+          float puckMask = smoothstep(uPuckSize, uPuckSize - 0.15, dist);
+
+          // 3. Sample the content at puck center
+          vec3 emission = generateSphereContent(sampleUv, uTime);
+
+          // LED pucks emit light; the space between them is dark framework/housing
+          vec3 finalColor = emission * puckMask;
+
+          // Add subtle outer lens specular flare
+          float rim = 1.0 - max(dot(-normalize(vPosition), vNormal), 0.0);
+          finalColor += pow(rim, 3.0) * 0.15 * emission;
+
+          gl_FragColor = vec4(finalColor, 1.0);
+        }
+      `,
+      side: THREE.FrontSide
+    });
+
+    const dome = new THREE.Mesh(sphereGeo, sphereShaderMaterial);
+    scene.add(dome);
+
+    // Inner dark hull (so you don't see raw geometry inside if viewed through margins)
+    const innerHullGeo = sphereGeo.clone();
+    const innerHullMat = new THREE.MeshBasicMaterial({ color: 0x010101, side: THREE.BackSide });
+    const innerHull = new THREE.Mesh(innerHullGeo, innerHullMat);
+    scene.add(innerHull);
+
+    // --- 5. Lighting & Resize Management ---
+    const ambLight = new THREE.AmbientLight(0xffffff, 0.2);
+    scene.add(ambLight);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- 6. Render Loop ---
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsedTime = clock.getElapsedTime();
+      sphereShaderMaterial.uniforms.uTime.value = elapsedTime;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

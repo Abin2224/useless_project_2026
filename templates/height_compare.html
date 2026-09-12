@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Celebrity Height Scale</title>
+  <link rel="stylesheet" href="/static/css/height_compare.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>CELEBRITY HEIGHT SCALE</h1>
+    <p class="tagline">Compare your true stature against any famous figure in history or Hollywood.</p>
+  </header>
+
+  <main class="main-layout">
+    <section class="control-panel">
+      <div class="input-grid">
+        <div class="field-block">
+          <label for="celebInput">Celebrity / Famous Person</label>
+          <input type="text" id="celebInput" value="Tom Cruise" placeholder="e.g. LeBron James, Taylor Swift, Kevin Hart">
+        </div>
+        <div class="field-block">
+          <label for="heightInput">Your Height (cm)</label>
+          <input type="number" id="heightInput" value="175" placeholder="e.g. 175">
+        </div>
+      </div>
+      <div class="action-row">
+        <button id="compareBtn">Compare Height</button>
+      </div>
+    </section>
+
+    <!-- VISUAL COMPARISON STAGE -->
+    <section class="stage-wrapper">
+      <div class="measurement-grid" id="measurementGrid">
+        <!-- Generated height tick lines (100cm to 220cm) -->
+      </div>
+
+      <div class="comparison-stage" id="comparisonStage">
+        <!-- Celebrity Figure -->
+        <div class="figure-slot" id="celebSlot">
+          <div class="figure-frame">
+            <img id="celebImg" src="" alt="Celebrity Picture" style="display:none;">
+            <div id="celebPlaceholder" class="photo-placeholder">Awaiting input...</div>
+          </div>
+          <div class="figure-label">
+            <span class="label-name" id="celebNameDisplay">-</span>
+            <span class="label-height" id="celebHeightDisplay">0 cm</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Laser Measurement Line -->
+        <div id="laserGuideLine" class="laser-guide"></div>
+
+        <!-- User Mannequin Figure -->
+        <div class="figure-slot" id="userSlot">
+          <div class="figure-frame">
+            <img id="mannequinImg" src="/static/images/mannequin.png" alt="User Mannequin">
+          </div>
+          <div class="figure-label">
+            <span class="label-name">YOU</span>
+            <span class="label-height" id="userHeightDisplay">0 cm</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-panel">
+      <h2 id="resultHeadline">Ready to compare.</h2>
+      <p id="resultSubtext" class="subtext">Enter names above to view proportional scaling.</p>
+    </section>
+  </main>
+
+  <script src="/static/js/height_compare.js"></script>
+</body>
+</html>

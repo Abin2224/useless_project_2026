@@ -44,22 +44,46 @@ def get_coordinates(location_name):
 def get_object_dimension(object_name):
     fallback_size = 1.0
     if not GEMINI_API_KEY:
+        print("\n[!] WARNING: GEMINI_API_KEY not found in environment/.env!\n")
         return fallback_size
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    prompt = f"What is the average length or height in meters of '{object_name}'? Respond with STRICTLY a single number and absolutely no other text, symbols, or units. For example, if it is 1.85 meters, respond exactly with: 1.85"
+    # Use a fast, lightweight flash endpoint
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={GEMINI_API_KEY}"
+    prompt = (
+        f"What is the average length or height in meters of a single '{object_name}'? "
+        f"Respond with STRICTLY a single number and absolutely no other text, symbols, or units. "
+        f"Example: 1.85"
+    )
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
     
     try:
-        res = requests.post(url, json=payload, headers=headers).json()
+        # timeout=(connect_timeout, read_timeout)
+        # 5s to establish connection, 15s to wait for Google's model response
+        response = requests.post(url, json=payload, headers=headers, timeout=(5, 15))
+        res = response.json()
+        
+        if "error" in res:
+            print(f"\n[!] GEMINI API ERROR ({res['error'].get('code')}): {res['error'].get('message')}\n")
+            return fallback_size
+            
         if "candidates" in res and res["candidates"]:
             text_response = res["candidates"][0]["content"]["parts"][0]["text"].strip()
+            print(f"[+] Object '{object_name}' returned dimension: '{text_response}'")
             match = re.search(r"[-+]?\d*\.\d+|\d+", text_response)
             if match:
-                return float(match.group())
+                parsed_val = float(match.group())
+                if parsed_val > 0:
+                    return parsed_val
+
+        print(f"[!] No valid candidate text found. Response: {res}")
+        return fallback_size
+        
+    except requests.exceptions.Timeout as e:
+        print(f"\n[!] Gemini API Request timed out: {e}\n")
         return fallback_size
     except Exception as e:
+        print(f"\n[!] Exception during dimension lookup: {e}\n")
         return fallback_size
 
 @app.route("/")
@@ -69,6 +93,10 @@ def home():
 @app.route("/cosmic-stack")
 def cosmic_stack():
     return render_template("cosmic_stack.html")
+
+@app.route("/maker")
+def maker_portfolio():
+    return render_template("maker.html")
 
 @app.route("/api/calculate", methods=["POST"])
 def calculate():
@@ -136,7 +164,7 @@ def calculate():
     })
 
 # =========================================================================
-# RABBIT HOLE (HIGH-DENSITY MULTI-PARAGRAPH CONTENT)
+# RABBIT HOLE (PRESERVED)
 # =========================================================================
 FALLBACK_TOPICS = [
     {
@@ -274,7 +302,6 @@ def rabbit_roast():
         100: f"Score: {pct}%. Congratulations. You have the patience of a Shaolin monk, nerves of cold titanium, and unquestionably way too much free time. Here is your exit."
     }
 
-    # Find closest bucket key
     closest_key = min(tier_roasts.keys(), key=lambda k: abs(k - pct))
     fallback = tier_roasts[closest_key]
 
@@ -299,6 +326,79 @@ Keep it strictly under 3 sentences. Output ONLY the roast text.
         return jsonify({"success": True, "roast": roast_text, "pct": pct})
     except Exception:
         return jsonify({"success": True, "roast": fallback, "pct": pct})
+
+# =========================================================================
+# CELEBRITY HEIGHT COMPARE (BUTTON C COMPONENT)
+# =========================================================================
+@app.route("/height-compare")
+def height_compare():
+    return render_template("height_compare.html")
+
+@app.route("/api/height-compare", methods=["POST"])
+def api_height_compare():
+    data = request.get_json() or {}
+    celeb_name = str(data.get("celebrity", "")).strip()
+    user_height_str = str(data.get("user_height", "")).strip()
+
+    if not celeb_name or not user_height_str:
+        return jsonify({"success": False, "error": "Both celebrity name and user height are required."}), 400
+
+    try:
+        user_height_cm = float(user_height_str)
+        if user_height_cm <= 30 or user_height_cm >= 300:
+            return jsonify({"success": False, "error": "Please enter a valid height between 30 cm and 300 cm."}), 400
+    except ValueError:
+        return jsonify({"success": False, "error": "Invalid user height format. Please enter a valid number in cm."}), 400
+
+    # 1. Fetch Image from Wikipedia
+    image_url = None
+    wiki_title = celeb_name
+    try:
+        wiki_search_url = f"https://en.wikipedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch={requests.utils.quote(celeb_name)}&gsrlimit=1&prop=pageimages&pithumbsize=600"
+        wiki_res = requests.get(wiki_search_url, headers={"User-Agent": "HeightCompareApp/1.0"}, timeout=4).json()
+        pages = wiki_res.get("query", {}).get("pages", {})
+        for _, pdata in pages.items():
+            wiki_title = pdata.get("title", celeb_name)
+            if "thumbnail" in pdata:
+                image_url = pdata["thumbnail"].get("source")
+            break
+    except Exception as e:
+        print(f"[!] Wikipedia Image Fetch Error: {e}")
+
+    # 2. Fetch Height in cm from Gemini
+    celeb_height_cm = 175.0
+    if GEMINI_API_KEY:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={GEMINI_API_KEY}"
+        prompt = f"What is the official or estimated height in centimeters of '{celeb_name}'? Respond with STRICTLY a single number (e.g., 185) and absolutely no units, letters, or punctuation."
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        headers = {"Content-Type": "application/json"}
+        try:
+            res = requests.post(url, json=payload, headers=headers, timeout=4).json()
+            if "candidates" in res and res["candidates"]:
+                raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
+                match = re.search(r"\d+(\.\d+)?", raw_text)
+                if match:
+                    val = float(match.group())
+                    if 50 <= val <= 280:
+                        celeb_height_cm = val
+        except Exception as e:
+            print(f"[!] Gemini Height Lookup Error: {e}")
+
+    diff = round(user_height_cm - celeb_height_cm, 1)
+
+    return jsonify({
+        "success": True,
+        "celebrity": {
+            "name": wiki_title,
+            "height_cm": celeb_height_cm,
+            "image_url": image_url
+        },
+        "user": {
+            "height_cm": user_height_cm
+        },
+        "diff_cm": diff,
+        "comparison_text": f"You are {abs(diff)} cm {'taller' if diff > 0 else 'shorter'} than {wiki_title}." if diff != 0 else f"You are exactly the same height as {wiki_title}!"
+    })
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sphere Vegas Replica with Interactive Emoji Face</title>
+  <title>The Absurd Protocol - Hub</title>
   <style>
     body, html {
       margin: 0;
@@ -17,8 +17,40 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      position: relative;
     }
 
+    /* BIG CENTER TOP HEADING */
+    .header-wrapper {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 100;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .main-project-heading {
+      color: #00ffff;
+      font-size: 3.2rem;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      font-weight: 900;
+      text-shadow: 0 0 25px rgba(0, 255, 255, 0.6), 0 0 50px rgba(0, 255, 255, 0.25);
+      margin: 0;
+    }
+
+    .sub-project-heading {
+      color: #617387;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* SPHERE CONTAINER */
     #sphere-widget-container {
       width: 520px;
       height: 410px;
@@ -26,6 +58,7 @@
       border: none;
       background: transparent;
       overflow: hidden;
+      margin-top: 75px;
     }
 
     #sphere-widget-container canvas {
@@ -35,6 +68,25 @@
     }
 
     #status-ui { display: none; }
+
+    /* BOTTOM RIGHT MAKER LINK */
+    .maker-credit-link {
+      position: absolute;
+      bottom: 18px;
+      right: 24px;
+      z-index: 100;
+      color: rgba(209, 219, 229, 0.55);
+      font-size: 0.8rem;
+      text-decoration: none;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+      font-family: monospace;
+    }
+
+    .maker-credit-link:hover {
+      color: #00ffff;
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+    }
 
     /* FULLSCREEN LOCKDOWN OVERLAY */
     #lockdown-overlay {
@@ -227,8 +279,19 @@
 </head>
 <body>
 
+  <!-- BIG CENTER TOP HEADING -->
+  <div class="header-wrapper">
+    <h1 class="main-project-heading">THE ABSURD PROTOCOL</h1>
+    <div class="sub-project-heading">An Interactive Suite of Digital Curiosities</div>
+  </div>
+
   <div id="sphere-widget-container"></div>
   <div id="status-ui">Cursor Status: <span id="cursor-state" style="color: #ff5555;">OUTSIDE</span></div>
+
+  <!-- BOTTOM RIGHT MAKER LINK -->
+  <a href="/maker" id="makerLink" class="maker-credit-link" target="_blank" rel="noopener noreferrer">
+    Know about the maker
+  </a>
 
   <!-- LOCKDOWN OVERLAY -->
   <div id="lockdown-overlay">
@@ -531,22 +594,20 @@
       faceTexture.needsUpdate = true;
     }
 
-    // --- SLEEP FACE: Blue z.z.z.z & always front-facing ---
+    // --- SLEEP FACE ---
     function renderSleepFace(t) {
       drawYellowBase();
       const cx = faceCanvas.width * 0.5;
       const cy = faceCanvas.height * 0.48;
       
-      // Eyes remain dark
       faceCtx.strokeStyle = '#221808';
       faceCtx.lineWidth = 8;
       faceCtx.lineCap = 'round';
       faceCtx.beginPath(); faceCtx.arc(cx - 80, cy, 30, 0.2, Math.PI - 0.2); faceCtx.stroke();
       faceCtx.beginPath(); faceCtx.arc(cx + 80, cy, 30, 0.2, Math.PI - 0.2); faceCtx.stroke();
 
-      // Only 'z' letters are colored bright cyan/blue
       faceCtx.font = '700 60px monospace';
-      faceCtx.fillStyle = '#221808'; // Blue color for Z's
+      faceCtx.fillStyle = '#221808';
       for (let i = 0; i < 3; i++) {
         const b = (t * 0.001 + i * 0.6) % 1.8;
         faceCtx.globalAlpha = 1 - b / 1.8;
@@ -588,7 +649,6 @@
       faceTexture.needsUpdate = true;
     }
 
-    // Safe multi-wrap UV calculation to ensure faces never disappear at edges
     function getFaceX(baseAngle) {
       const w = faceCanvas.width;
       const norm = (((baseAngle / (Math.PI * 2)) % 1) + 1) % 1;
@@ -599,7 +659,6 @@
       drawYellowBase();
       const cy = faceCanvas.height * 0.48;
 
-      // Draw each face and redundant wraparound copy so it never clips at seams
       const f1 = getFaceX(0);
       drawSunglassesFace(f1, cy);
       drawSunglassesFace(f1 - faceCanvas.width, cy);
@@ -624,7 +683,7 @@
     const BUTTON_DATA = [
       { id: 'A', name: 'COSMIC STACK', url: '/cosmic-stack' },
       { id: 'B', name: 'RABBIT HOLE', url: '/rabbit-hole' },
-      { id: 'C', name: 'BUTTON C', url: 'https://example.com/page-c' }
+      { id: 'C', name: 'HEIGHT SCALE', url: '/height-compare' }
     ];
 
     // =========================================================================
@@ -830,6 +889,8 @@
         sphereTargetRotation += step;
         orbitTargetRotation += step;
       }
+      lastMoveTime = performance.now();
+      lastInsideMoveTime = performance.now();
     }, { passive: false });
 
     widgetContainer.addEventListener('click', () => {
@@ -858,7 +919,7 @@
     });
 
     // =========================================================================
-    // 9. ANIMATION LOOP (SAFE UV & PROMPT STALL ENGINE)
+    // 9. ANIMATION LOOP
     // =========================================================================
     function animate() {
       requestAnimationFrame(animate);
@@ -868,11 +929,9 @@
       updateBlink(dt);
 
       const globalIdle = (now - lastMoveTime) > 10000;
-      // Stalled hover activates after only 800ms of stationary pointer inside container
-      const insideStalled = isPointerInsideContainer && (now - lastInsideMoveTime) > 800;
+      const insideStalled = isPointerInsideContainer && (now - lastInsideMoveTime) > 2500;
 
       if (globalIdle) {
-        // Automatically smoothly rotate sphere frontward so sleep face faces the camera
         const nearestFront = Math.round(sphereTargetRotation / (Math.PI * 2)) * (Math.PI * 2);
         sphereTargetRotation += (nearestFront - sphereTargetRotation) * 0.08;
         renderSleepFace(now);

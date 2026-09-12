@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About the Maker - Abin dev E K</title>
+
+<!-- Web Fonts Fallback + Ready for Local Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+
+<style>
+/* Optional: Put your local font files into /static/fonts/ if you have them */
+@font-face {
+  font-family: 'MilkyWay';
+  src: url('/static/fonts/MilkyWay.otf') format('opentype'),
+       url('/static/fonts/MilkyWay.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Konexy';
+  src: url('/static/fonts/KonexyPersonalUse.otf') format('opentype'),
+       url('/static/fonts/KonexyPersonalUse.ttf') format('truetype');
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #0b1020;
+  overflow-x: hidden;
+  color: #f1f5f9;
+  font-family: 'Konexy', 'Space Grotesk', -apple-system, sans-serif;
+}
+
+canvas#bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Scrollable Container Over WebGL */
+.content-layer {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+/* Glassmorphism Card Matching Your Wireframe */
+.maker-card {
+  width: 100%;
+  max-width: 680px;
+  background: rgba(11, 16, 32, 0.65);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 44px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Top Name Typography */
+.maker-name {
+  font-family: 'MilkyWay', 'Syne', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 0 25px rgba(255, 255, 255, 0.35);
+  margin-bottom: 28px;
+}
+
+/* Section A: Photo Frame */
+.photo-slot {
+  width: 170px;
+  height: 170px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.1);
+  background: #050814;
+  margin-bottom: 34px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.photo-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Section B: Wide Info Box with Bullets */
+.info-box {
+  width: 100%;
+  background: rgba(4, 8, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 26px 30px;
+}
+
+.info-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.info-list li {
+  display: flex;
+  align-items: center;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+  letter-spacing: 0.5px;
+}
+
+.info-list li::before {
+  content: "✦";
+  color: #38bdf8;
+  font-size: 0.9rem;
+  margin-right: 14px;
+  flex-shrink: 0;
+  text-shadow: 0 0 8px #38bdf8;
+}
+
+/* Back Link */
+.back-btn {
+  margin-top: 28px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  text-decoration: none;
+  letter-spacing: 1px;
+  font-family: monospace;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  color: #38bdf8;
+  text-shadow: 0 0 8px #38bdf8;
+}
+
+@media (max-width: 600px) {
+  .maker-name {
+    font-size: 2.1rem;
+    letter-spacing: 2px;
+  }
+  .maker-card {
+    padding: 30px 20px;
+  }
+  .info-box {
+    padding: 20px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="content-layer">
+  <main class="maker-card">
+    <!-- Top Heading -->
+    <h1 class="maker-name">ABIN DEV E K</h1>
+
+    <!-- Part A: Photo Box -->
+    <div class="photo-slot">
+      <!-- Place your personal image at /static/images/profile.jpg -->
+      <img src="/static/images/profile.jpg" alt="Abin dev E K" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'170\' height=\'170\' viewBox=\'0 0 170 170\'><rect fill=\'%23070d1e\' width=\'170\' height=\'170\'/><text fill=\'%2338bdf8\' font-family=\'monospace\' font-size=\'13\' x=\'50%27 y=\'50%27 text-anchor=\'middle\' dominant-baseline=\'middle\'>ADD PHOTO</text></svg>'">
+    </div>
+
+    <!-- Part B: Wide Info Box -->
+    <section class="info-box">
+      <ul class="info-list">
+        <li>Student at RIT Kottayam</li>
+        <li>Curious computer science explorer & creative developer</li>
+        <li>Builder of interactive graphics, shaders & web experiences</li>
+        <li>Explorer of algorithms, systems, and digital oddities</li>
+      </ul>
+    </section>
+
+    <a href="/" class="back-btn">← Back to Hub</a>
+  </main>
+</div>
+
+<!-- ========================= -->
+<!--  FULLSCREEN VERTEX SHADER -->
+<!-- ========================= -->
+<script id="vs" type="x-shader/x-vertex">
+attribute vec2 position;
+void main(){
+    gl_Position = vec4(position,0.0,1.0);
+}
+</script>
+
+<!-- ========================= -->
+<!--  LIGHT FIELD FRAGMENT SHADER -->
+<!-- ========================= -->
+<script id="fs" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform vec2 u_mouse;
+
+struct Node {
+    vec2  pos;
+    float radius;
+    float phase;
+};
+
+const int NUM = 9;
+
+vec3 palette(float t){
+    vec3 a = vec3(0.92,0.45,0.30);
+    vec3 b = vec3(0.85,0.20,0.45);
+    vec3 c = vec3(0.15,0.60,0.85);
+    vec3 d = vec3(0.15,0.85,0.70);
+    t = mod(t,4.0);
+    if(t<1.0) return mix(a,b,t);
+    if(t<2.0) return mix(b,c,t-1.0);
+    if(t<3.0) return mix(c,d,t-2.0);
+    return mix(d,a,t-3.0);
+}
+
+void main(){
+    vec2 uv = gl_FragCoord.xy / u_resolution;
+    float aspect = u_resolution.x / u_resolution.y;
+    vec2 uva = vec2(uv.x * aspect, uv.y);
+
+    Node n[NUM];
+    n[0] = Node(vec2(0.18,0.20), 0.40, 0.0);
+    n[1] = Node(vec2(0.45,0.18), 0.38, 1.1);
+    n[2] = Node(vec2(0.78,0.22), 0.40, 2.2);
+    n[3] = Node(vec2(0.55,0.40), 0.42, 3.1);
+    n[4] = Node(vec2(0.70,0.55), 0.38, 4.2);
+    n[5] = Node(vec2(0.50,0.70), 0.45, 5.3);
+    n[6] = Node(vec2(0.85,0.75), 0.40, 6.4);
+    n[7] = Node(vec2(0.15,0.65), 0.42, 7.5);
+    n[8] = Node(vec2(0.35,0.50), 0.38, 8.6);
+
+    vec3 field = vec3(0.0);
+    float total = 0.0;
+
+    for(int i=0;i<NUM;i++){
+        vec2 p = vec2(n[i].pos.x * aspect, n[i].pos.y);
+        float d = distance(uva, p);
+        float softness = 10.0;
+        float w = exp(-d * d * softness / n[i].radius);
+
+        float colorSpeed = 0.9;
+        vec3 col = palette(u_time * colorSpeed + n[i].phase);
+
+        field += col * w;
+        total += w;
+    }
+
+    vec3 baseColor = field / total;
+
+    vec2 m = vec2(u_mouse.x * aspect, u_mouse.y);
+    float md = distance(uva, m);
+
+    float glowRadius = 100.0;
+    float glowStrength = 0.55;
+    float glow = exp(-md * md * glowRadius);
+
+    vec3 finalColor = mix(baseColor, vec3(1.0), glow * glowStrength);
+
+    gl_FragColor = vec4(finalColor, 1.0);
+}
+</script>
+
+<!-- ========================= -->
+<!--  WEBGL RENDERER           -->
+<!-- ========================= -->
+<script>
+const canvas = document.getElementById("bg");
+const gl = canvas.getContext("webgl",{alpha:false});
+
+let mx = 0.5, my = 0.5;
+window.addEventListener("mousemove", e => {
+    mx = e.clientX / window.innerWidth;
+    my = 1.0 - e.clientY / window.innerHeight;
+});
+
+function compile(type, src){
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+}
+
+const program = gl.createProgram();
+gl.attachShader(program, compile(gl.VERTEX_SHADER, vs.text));
+gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fs.text));
+gl.linkProgram(program);
+gl.useProgram(program);
+
+const buffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1,-1,  1,-1,  -1,1,
+    -1,1,   1,-1,   1,1
+]), gl.STATIC_DRAW);
+
+const pos = gl.getAttribLocation(program,"position");
+gl.enableVertexAttribArray(pos);
+gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+
+const resLoc   = gl.getUniformLocation(program,"u_resolution");
+const timeLoc  = gl.getUniformLocation(program,"u_time");
+const mouseLoc = gl.getUniformLocation(program,"u_mouse");
+
+function render(t){
+    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+
+    gl.uniform2f(resLoc, canvas.width, canvas.height);
+    gl.uniform1f(timeLoc, t * 0.001);
+    gl.uniform2f(mouseLoc, mx, my);
+
+    gl.drawArrays(gl.TRIANGLES,0,6);
+    requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script>
+
+</body>
+</html>

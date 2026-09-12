@@ -1,0 +1,230 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #03060c;
+  color: #d1dbe5;
+  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px 60px;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.app-header h1 {
+  color: #00ffff;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  text-shadow: 0 0 16px rgba(0, 255, 255, 0.4);
+}
+
+.tagline {
+  color: #7b8e9f;
+  margin-top: 6px;
+  font-size: 0.9rem;
+}
+
+.main-layout {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.control-panel, .results-panel {
+  background: #080e1a;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 22px;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.field-block label {
+  display: block;
+  color: #00ffff;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+input {
+  width: 100%;
+  padding: 11px;
+  background: #03060d;
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  border-radius: 6px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+input:focus {
+  border-color: #00ffff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.25);
+}
+
+#compareBtn {
+  background: #00ffff;
+  color: #020408;
+  padding: 12px 36px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: inherit;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+}
+
+#compareBtn:hover {
+  background: #70ffff;
+  box-shadow: 0 0 18px rgba(0, 255, 255, 0.6);
+}
+
+/* -------------------------------------------------------------
+   STAGE & SCALE VIEWPORT
+------------------------------------------------------------- */
+.stage-wrapper {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  background: #020408;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Background Height Ruler */
+.measurement-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-bottom: 3px solid #00ffff;
+}
+
+.ruler-line {
+  position: absolute;
+  width: 100%;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.ruler-label {
+  font-size: 0.7rem;
+  color: rgba(0, 255, 255, 0.45);
+  transform: translateY(-50%);
+}
+
+.comparison-stage {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding-bottom: 2px;
+  z-index: 10;
+}
+
+.figure-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 220px;
+}
+
+.figure-frame {
+  height: 380px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.figure-frame img {
+  max-width: 100%;
+  object-fit: contain;
+  transform-origin: bottom center;
+  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.15));
+}
+
+#mannequinImg {
+  filter: drop-shadow(0 0 14px rgba(0, 0, 0, 0.8)) brightness(0.9);
+}
+
+.photo-placeholder {
+  width: 160px;
+  height: 240px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.8rem;
+}
+
+.figure-label {
+  margin-top: 10px;
+  text-align: center;
+  background: rgba(8, 14, 26, 0.85);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  padding: 6px 14px;
+  border-radius: 4px;
+}
+
+.label-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.label-height {
+  font-size: 0.8rem;
+  color: #00ffff;
+}
+
+/* LASER GUIDE LINE INDICATOR */
+.laser-guide {
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: #ff3366;
+  box-shadow: 0 0 10px #ff3366;
+  pointer-events: none;
+  display: none;
+  transition: bottom 0.5s ease;
+}
+
+/* Results */
+.results-panel h2 {
+  font-size: 1.25rem;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.subtext {
+  color: #7b8e9f;
+  font-size: 0.9rem;
+}
+
+.highlight {
+  color: #00ffff;
+}

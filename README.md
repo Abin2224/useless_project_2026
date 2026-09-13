@@ -78,63 +78,32 @@ Shows the cute face of the sphere
 shows the height comparison page. Ther user entered Narendra Modi as celebrity, and their height, it shows the comparison
 
 # Diagrams
-+----------------------------------------------------------------------------------------------------+
-|                                      CLIENT LAYER (Browser)                                        |
-+----------------------------------------------------------------------------------------------------+
-|                                                                                                    |
-|  [ index.html (Digital Hub) ]                                                                      |
-|    |-- Three.js Interactive LED Sphere (Raycasting, Dynamic Emoji Face Shader, Gaze Tracking)      |
-|    |-- Decoupled 3D Orbit Carousel Navigation Buttons                                              |
-|    |-- BroadcastChannel Cross-Tab Synchronizer (Lockdown Protocol & Anti-Cheat Tab Tracking)       |
-|    \-- Rapid-Fire Quiz & Roast Modal Interface                                                     |
-|                                                                                                    |
-|       |                                 |                                 |                        |
-|       v                                 v                                 v                        |
-|  [ cosmic_stack.html ]          [ rabbit_hole.html ]             [ height_compare.html ]           |
-|  - Distance & Unit Inputs       - 3-Chamber Narrative Reader     - Celebrity & User Height Inputs  |
-|  - Real-Time 3D Stack View      - Secret Escape Interaction      - Proportional Mannequin & Image  |
-|                                                                                                    |
-+-------------------------------------------------+--------------------------------------------------+
-                                                  |
-                                    HTTP / JSON   |   REST APIs
-                                                  v
-+----------------------------------------------------------------------------------------------------+
-|                                  APPLICATION LAYER (Flask Backend)                                 |
-+----------------------------------------------------------------------------------------------------+
-|                                                                                                    |
-|  [ app.py Routing & Processing Engine ]                                                            |
-|    |                                                                                               |
-|    +---> /api/calculate (Cosmic Stack)                                                             |
-|    |       |-- Resolves Earth-to-Earth coordinates via Haversine Formula                               |
-|    |       |-- Computes Interplanetary distances using Astronomical Ephemeris Baselines            |
-|    |       \-- Normalizes target object real-world dimensions into cumulative units                |
-|    |                                                                                               |
-|    +---> /api/rabbit/generate & /api/rabbit/roast (Rabbit Hole)                                     |
-|    |       |-- Assembles 3-Chamber deep-dive narrative structures with MCQ & descriptive puzzles   |
-|    |       |-- Evaluates user retention scores, timeout triggers, and tab-peeking counts           |
-|    |       \-- Generates context-aware comedic roasting responses                                  |
-|    |                                                                                               |
-|    \---> /api/height-compare (Height Scale)                                                        |
-|            |-- Extracts verified celebrity heights in centimeters                                  |
-|            \-- Calculates relative scale factors & differential laser offsets                      |
-|                                                                                                    |
-+-------------------------------------------------+--------------------------------------------------+
-                                                  |
-                                   Outbound HTTPS | Requests
-                                                  v
-+----------------------------------------------------------------------------------------------------+
-|                                   EXTERNAL SERVICES & APIS                                         |
-+----------------------------------------------------------------------------------------------------+
-|                                                                                                    |
-|  +---------------------------+  +----------------------------+  +-------------------------------+  |
-|  | Google Gemini API         |  | Wikipedia REST API         |  | OpenStreetMap (Nominatim API) |  |
-|  |---------------------------|  |----------------------------|  |-------------------------------|  |
-|  | - Dimension extraction    |  | - Official page thumbnail  |  | - Geographic forward lookup   |  |
-|  | - Historical content JSON |  |   image resolution         |  | - Latitude / longitude        |  |
-|  | - Adaptive roasts         |  | - Entity disambiguation    |  |   spatial coordinates         |  |
-|  +---------------------------+  +----------------------------+  +-------------------------------+  |
-|                                                                                                    |
-+----------------------------------------------------------------------------------------------------+
+graph TD
+    subgraph Client["CLIENT LAYER (Browser)"]
+        Hub["index.html (Digital Hub)"]
+        Hub --> HubFeatures["-- Three.js Interactive LED Sphere (Raycasting, Dynamic Emoji Face Shader, Gaze Tracking)<br>-- Decoupled 3D Orbit Carousel Navigation Buttons<br>-- BroadcastChannel Cross-Tab Synchronizer (Lockdown Protocol & Anti-Cheat Tab Tracking)<br>-- Rapid-Fire Quiz & Roast Modal Interface"]
+        
+        Hub --> Cosmic["cosmic_stack.html<br>- Distance & Unit Inputs<br>- Real-Time 3D Stack View"]
+        Hub --> Rabbit["rabbit_hole.html<br>- 3-Chamber Narrative Reader<br>- Secret Escape Interaction"]
+        Hub --> Height["height_compare.html<br>- Celebrity & User Height Inputs<br>- Proportional Mannequin & Image"]
+    end
+
+    subgraph Backend["APPLICATION LAYER (Flask Backend)"]
+        Engine["app.py Routing & Processing Engine"]
+        
+        Engine --> Calc["/api/calculate (Cosmic Stack)<br>-- Resolves Earth-to-Earth coordinates via Haversine Formula<br>-- Computes Interplanetary distances using Astronomical Ephemeris Baselines<br>-- Normalizes target object real-world dimensions into cumulative units"]
+        Engine --> RabbitApi["/api/rabbit/generate & /api/rabbit/roast (Rabbit Hole)<br>-- Assembles 3-Chamber deep-dive narrative structures with MCQ & descriptive puzzles<br>-- Evaluates user retention scores, timeout triggers, and tab-peeking counts<br>-- Generates context-aware comedic roasting responses"]
+        Engine --> HeightApi["/api/height-compare (Height Scale)<br>-- Extracts verified celebrity heights in centimeters<br>-- Calculates relative scale factors & differential laser offsets"]
+    end
+
+    subgraph External["EXTERNAL SERVICES & APIS"]
+        Gemini["Google Gemini API<br>- Dimension extraction<br>- Historical content JSON<br>- Adaptive roasts"]
+        Wiki["Wikipedia REST API<br>- Official page thumbnail<br> image resolution<br>- Entity disambiguation"]
+        OSM["OpenStreetMap (Nominatim API)<br>- Geographic forward lookup<br>- Latitude / longitude<br> spatial coordinates"]
+    end
+
+    Client -- "HTTP / JSON & REST APIs" --> Backend
+    Backend -- "Outbound HTTPS Requests" --> External
 The workflow explains itself...
 
 For Hardware:

@@ -1,6 +1,3 @@
-<img width="1535" height="777" alt="Height_compare" src="https://github.com/user-attachments/assets/8950ac19-d46f-483d-b922-0631b699b3ac" /><img width="1536" height="777" alt="Home_page" src="https://github.com/user-attachments/assets/4d245978-b3ad-46d2-a6d5-29d3861f862e" /><img width="1280" height="640" alt="git (1)" src="https://github.com/user-attachments/assets/8920b256-2ba8-4988-b824-5351134eb4bd" />
-
-
 
 # [Project Name] 🎯
 THE ABSURD PROTOCOL
@@ -75,7 +72,30 @@ The point can either be a planet or a location on earth
 Shows the cute face of the sphere
 
 <img width="1535" height="777" alt="Height_compare" src="https://github.com/user-attachments/assets/fd2cb731-6fe5-48a5-aec1-fc42f1a478b2" />
-shows the height comparison page. Ther user entered Narendra Modi as celebrity, and their height, it shows the comparison
+shows the height comparison page. Ther user entered Narendra Modi as celebrity, and their height, it shows the comparison.
+<img width="1920" height="1080" alt="Taylor_swift_compare" src="https://github.com/user-attachments/assets/d3f97716-50c5-4459-9f41-0037b61a3ebc" />
+Another example of the comparison. This time with Taylor Swift
+
+<img width="1920" height="1080" alt="rabbit_hole_1" src="https://github.com/user-attachments/assets/8bed4db0-3d99-4f1c-a250-0e2d6e41bda3" />
+<img width="1920" height="1080" alt="rabbit_hole_2" src="https://github.com/user-attachments/assets/af702d63-bb83-44a0-84fb-1d095f9f6e31" />
+These screenshots show the randomly picked article shown on the rabbit_hole page. The idea is to actually read through the article and remember it.
+<img width="1920" height="1080" alt="rabbit_hole_exit" src="https://github.com/user-attachments/assets/96e5aefd-34e3-4b59-bbb3-7ff336e1d28b" />
+This is the exit messge shown after clicking through 3 buttons and reading through around 9 paragraphs. Tells the user to close the tab and go to home page.
+
+<img width="1920" height="1080" alt="rabbit_hole_quiz_1" src="https://github.com/user-attachments/assets/62a32840-b650-4723-a723-11c88a5c5169" />
+<img width="1920" height="1080" alt="rabbit_hole_quiz_2" src="https://github.com/user-attachments/assets/2bbb8232-20e3-4a81-9aca-170a0794c5fe" />
+
+After the user gets back from rabbit_hole page, this is the rapid questions he/she will be asked to answer. There are 8 MCQ questions and 2 short descriptive questions based on the article showed earlier in the rabbit_hole page. Some questions are designed to ask from the paragraphs below the button of the next page.
+There is 8 seconds timer for MCQ and 15 seconds timer for descriptive questions.
+
+<img width="1920" height="1080" alt="attention_span_roast" src="https://github.com/user-attachments/assets/6e9b25ae-7063-46ce-843d-99d31ef41ff4" />
+After the user answers the questions, based on the number of correct answers, the user gets roasted for the attention span and short term memory he/she has.
+
+<img width="1920" height="1080" alt="terminal locked" src="https://github.com/user-attachments/assets/987f8931-06f3-49ae-acb5-b752133e6916" />
+While the rabbit_hole page is running the home page is locked.
+<img width="1920" height="1080" alt="rage_quit" src="https://github.com/user-attachments/assets/dab45d2a-01cf-42e7-a95a-ff7a77b7d985" />
+If the user directly closes the rabit_hole page, they get criticized.
+
 
 # Diagrams
 ```text

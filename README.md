@@ -1,4 +1,4 @@
-<img width="1280" height="640" alt="git (1)" src="https://github.com/user-attachments/assets/8920b256-2ba8-4988-b824-5351134eb4bd" />
+<img width="1535" height="777" alt="Height_compare" src="https://github.com/user-attachments/assets/8950ac19-d46f-483d-b922-0631b699b3ac" /><img width="1536" height="777" alt="Home_page" src="https://github.com/user-attachments/assets/4d245978-b3ad-46d2-a6d5-29d3861f862e" /><img width="1280" height="640" alt="git (1)" src="https://github.com/user-attachments/assets/8920b256-2ba8-4988-b824-5351134eb4bd" />
 
 
 
@@ -6,30 +6,29 @@
 
 
 ## Basic Details
-### Team Name: [Name]
+### Team Name: [FlashBang]
 
 
 ### Team Members
-- Team Lead: [Name] - [College]
-- Member 2: [Name] - [College]
-- Member 3: [Name] - [College]
+- Team Lead: Abin dev E K - RIT
 
 ### Project Description
-[2-3 lines about what your project does]
+This project includes a cute las Vegas sphere replica, height comparison with celebrities, web rabbit hole to test the user's patience, and finally an option to display how many different things like coins, bus might be needed to reach from a point to another if they're stacked on top of each other.
 
 ### The Problem (that doesn't exist)
-[What ridiculous problem are you solving?]
+Every human being needs to find the number of coins or school buses it takes to reach from one point to another if the coins or school buses or anythhing are stacked on top of each other. Get an idea of the user's attention span. The height comparison with a celebrity.
 
 ### The Solution (that nobody asked for)
-[How are you solving it? Keep it fun!]
+Find the distance between the end points, divide that with the average length of the measurement object, we get the number.
+Get roasted about the attention span based on the score the user scores
 
 ## Technical Details
 ### Technologies/Components Used
 For Software:
-- [Languages used]
-- [Frameworks used]
-- [Libraries used]
-- [Tools used]
+- Languages used : Python, JavaScript, HTML5
+- Frameworks used : Flask (included entirely for unnecessary architectural weight)
+- Libraries used : Three.js,Requests
+- Tools used : APIs: Google Gemini API, Development & Environment: VS Code, Git, GitHub, Python Virtual Environment (venv), Browser Developer Tools
 
 For Hardware:
 - [List main components]
@@ -37,29 +36,91 @@ For Hardware:
 - [List tools required]
 
 ### Implementation
-For Software:
+Clone the repository
+GEMINI_API_KEY=your_gemini_api_key_here
 # Installation
-[commands]
-
+pip install -r requirements.txt
 # Run
-[commands]
+python app.py
 
 ### Project Documentation
 For Software:
 
 # Screenshots (Add at least 3)
-![Screenshot1](Add screenshot 1 here with proper name)
-*Add caption explaining what this shows*
+!<img width="1536" height="777" alt="Home_page" src="https://github.com/user-attachments/assets/2e93d85d-8f1c-4574-ad5f-50dc81c9d76a" />
 
-![Screenshot2](Add screenshot 2 here with proper name)
-*Add caption explaining what this shows*
+This is the homepage or the landing page of the project
 
-![Screenshot3](Add screenshot 3 here with proper name)
-*Add caption explaining what this shows*
+!<img width="1521" height="582" alt="cosmic_stack_2" src="https://github.com/user-attachments/assets/8c01ea81-a922-48ba-94df-e2d443815a2a" />
+<img width="1523" height="743" alt="cosmic stack_1" src="https://github.com/user-attachments/assets/b5a850cf-1fa6-4cd0-9084-2ded6887c443" />
+These images show the working of cosmic stack. How many objects does it take to reach from a point to another point.
+The point can either be a planet or a location on earth
+
+<img width="1536" height="775" alt="sphere_face_1" src="https://github.com/user-attachments/assets/167c9856-c46c-4d46-b444-08f5a5c5cf97" />
+Shows the cute face of the sphere
+
+<img width="1535" height="777" alt="Height_compare" src="https://github.com/user-attachments/assets/fd2cb731-6fe5-48a5-aec1-fc42f1a478b2" />
+shows the height comparison page. Ther user entered Narendra Modi as celebrity, and their height, it shows the comparison
 
 # Diagrams
-![Workflow](Add your workflow/architecture diagram here)
-*Add caption explaining your workflow*
++----------------------------------------------------------------------------------------------------+
+|                                      CLIENT LAYER (Browser)                                        |
++----------------------------------------------------------------------------------------------------+
+|                                                                                                    |
+|  [ index.html (Digital Hub) ]                                                                      |
+|    |-- Three.js Interactive LED Sphere (Raycasting, Dynamic Emoji Face Shader, Gaze Tracking)      |
+|    |-- Decoupled 3D Orbit Carousel Navigation Buttons                                              |
+|    |-- BroadcastChannel Cross-Tab Synchronizer (Lockdown Protocol & Anti-Cheat Tab Tracking)       |
+|    \-- Rapid-Fire Quiz & Roast Modal Interface                                                     |
+|                                                                                                    |
+|       |                                 |                                 |                        |
+|       v                                 v                                 v                        |
+|  [ cosmic_stack.html ]          [ rabbit_hole.html ]             [ height_compare.html ]           |
+|  - Distance & Unit Inputs       - 3-Chamber Narrative Reader     - Celebrity & User Height Inputs  |
+|  - Real-Time 3D Stack View      - Secret Escape Interaction      - Proportional Mannequin & Image  |
+|                                                                                                    |
++-------------------------------------------------+--------------------------------------------------+
+                                                  |
+                                    HTTP / JSON   |   REST APIs
+                                                  v
++----------------------------------------------------------------------------------------------------+
+|                                  APPLICATION LAYER (Flask Backend)                                 |
++----------------------------------------------------------------------------------------------------+
+|                                                                                                    |
+|  [ app.py Routing & Processing Engine ]                                                            |
+|    |                                                                                               |
+|    +---> /api/calculate (Cosmic Stack)                                                             |
+|    |       |-- Resolves Earth-to-Earth coordinates via Haversine Formula                               |
+|    |       |-- Computes Interplanetary distances using Astronomical Ephemeris Baselines            |
+|    |       \-- Normalizes target object real-world dimensions into cumulative units                |
+|    |                                                                                               |
+|    +---> /api/rabbit/generate & /api/rabbit/roast (Rabbit Hole)                                     |
+|    |       |-- Assembles 3-Chamber deep-dive narrative structures with MCQ & descriptive puzzles   |
+|    |       |-- Evaluates user retention scores, timeout triggers, and tab-peeking counts           |
+|    |       \-- Generates context-aware comedic roasting responses                                  |
+|    |                                                                                               |
+|    \---> /api/height-compare (Height Scale)                                                        |
+|            |-- Extracts verified celebrity heights in centimeters                                  |
+|            \-- Calculates relative scale factors & differential laser offsets                      |
+|                                                                                                    |
++-------------------------------------------------+--------------------------------------------------+
+                                                  |
+                                   Outbound HTTPS | Requests
+                                                  v
++----------------------------------------------------------------------------------------------------+
+|                                   EXTERNAL SERVICES & APIS                                         |
++----------------------------------------------------------------------------------------------------+
+|                                                                                                    |
+|  +---------------------------+  +----------------------------+  +-------------------------------+  |
+|  | Google Gemini API         |  | Wikipedia REST API         |  | OpenStreetMap (Nominatim API) |  |
+|  |---------------------------|  |----------------------------|  |-------------------------------|  |
+|  | - Dimension extraction    |  | - Official page thumbnail  |  | - Geographic forward lookup   |  |
+|  | - Historical content JSON |  |   image resolution         |  | - Latitude / longitude        |  |
+|  | - Adaptive roasts         |  | - Entity disambiguation    |  |   spatial coordinates         |  |
+|  +---------------------------+  +----------------------------+  +-------------------------------+  |
+|                                                                                                    |
++----------------------------------------------------------------------------------------------------+
+The workflow explains itself...
 
 For Hardware:
 
@@ -82,16 +143,15 @@ For Hardware:
 
 ### Project Demo
 # Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
+https://drive.google.com/drive/folders/1lVFibwE4uU582yV62L8ZP-TPCtAkZHvD
+It demonstrates all of the features of the project
 
 # Additional Demos
 [Add any extra demo materials/links]
 
 ## Team Contributions
-- [Name 1]: [Specific contributions]
-- [Name 2]: [Specific contributions]
-- [Name 3]: [Specific contributions]
+ABIN DEV E K -> ALL
+
 
 ---
 Made with ❤️ at TinkerHub Useless Projects 

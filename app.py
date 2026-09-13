@@ -11,8 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# WARNING: Do not change this to 3.5, 3.6, or 3.8. Those models do not exist 
-# and will cause a total API failure. 1.5-flash is the current stable version.
+#3.5, 3.6, or 3.8. If AI validation error occurs, try a different model.
 GEMINI_MODEL = "gemini-3.5-flash-lite" 
 
 app = Flask(__name__)

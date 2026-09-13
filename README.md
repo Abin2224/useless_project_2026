@@ -3,7 +3,8 @@
 
 
 # [Project Name] 🎯
-
+THE ABSURD PROTOCOL
+An interactive suite of digital curiosities.
 
 ## Basic Details
 ### Team Name: [FlashBang]
@@ -36,12 +37,26 @@ For Hardware:
 - [List tools required]
 
 ### Implementation
-Clone the repository
-GEMINI_API_KEY=your_gemini_api_key_here
+ Backend Framework & Routes: Built with Flask, handling core API endpoints such as /api/height-compare, /    api/calculate, /api/rabbit/generate, and /api/rabbit/roast.
+
+ Client-Server Communication: Utilizes asynchronous JavaScript fetch() calls transmitting JSON payloads between the frontend scripts (height_compare.js, main.js) and backend routes.
+
+ Data Sources: Integrates the Wikipedia API for celebrity height and image retrieval, alongside OpenStreetMap Nominatim for geocoding calculations.
+
+ Notable Logic: Employs dynamic pixel-to-centimeter scaling (pxPerCm), baseline offset mapping, and synchronized viewport rendering to keep mannequin and celebrity visuals perfectly aligned with the background grid.
+
 # Installation
-pip install -r requirements.txt
+Clone the project repository using git clone https://github.com/Abin2224/useless_project_2026.
+Verify that Python 3.8 or higher is installed on your system.
+Install project dependencies by running pip install -r requirements.txt.
+Set up the required environment configuration by creating a .env file in the root directory.
+
 # Run
-python app.py
+Configure your API key in the .env file using the exact literal variable name read by the application: GEMINI_API_KEY=your_api_key (retrieved in code via load_dotenv() and os.environ.get("GEMINI_API_KEY")).
+
+Start the application server by executing python app.py.
+
+Open your browser and navigate to Flask's default localhost URL and port: [http://127.0.0.1:5000](http://127.0.0.1:5000).
 
 ### Project Documentation
 For Software:

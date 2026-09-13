@@ -1,10 +1,10 @@
 
-# [Project Name] 🎯
-THE ABSURD PROTOCOL
+# Project Name: THE ABSURD PROTOCOL 🎯
+
 An interactive suite of digital curiosities.
 
 ## Basic Details
-### Team Name: [FlashBang]
+### Team Name: FlashBang
 
 
 ### Team Members

@@ -137,7 +137,7 @@
       text-align: center;
     }
 
-    /* EXIT MODAL (In Tab 2 only - purely instructions, NO QUIZ MODALS) */
+    /* EXIT MODAL */
     #exit-modal {
       position: fixed;
       inset: 0;
@@ -206,9 +206,9 @@
   <!-- EXIT MODAL -->
   <div id="exit-modal">
     <div class="exit-card">
-      <h2>ARCHIVE EXHAUSTED</h2>
-      <p>You have navigated through all recorded anomalies and unlocked the central terminal.</p>
-      <div class="close-hint">You may go to home page by closing this tab.</div>
+      <h2>EXIT FOUND</h2>
+      <p>You found the exit. Now go to the home page for a surprise...</p>
+      <div class="close-hint">You may go to the home page by closing this tab.</div>
     </div>
   </div>
 
@@ -233,6 +233,8 @@
         renderPage(1);
       } catch (err) {
         console.error(err);
+        document.getElementById('pageTitle').textContent = "Connection Error";
+        document.getElementById('upperParagraph').textContent = "Failed to retrieve the archives. Please try refreshing the page.";
       }
     }
 

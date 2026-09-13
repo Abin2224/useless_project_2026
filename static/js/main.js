@@ -38,54 +38,50 @@ const earthAlbedoMap = textureLoader.load('https://unpkg.com/three-globe/example
 
 function createPinMesh() {
   const pinGroup = new THREE.Group();
-  
-  const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
-  const headMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
-  const head = new THREE.Mesh(headGeo, headMat);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffcc00 }));
   head.position.y = 1.0;
   pinGroup.add(head);
-
-  const glowGeo = new THREE.SphereGeometry(0.7, 16, 16);
-  const glowMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.4 });
-  const glow = new THREE.Mesh(glowGeo, glowMat);
-  glow.position.y = 1.0;
-  pinGroup.add(glow);
-
-  const stemGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.0, 8);
-  const stemMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const stem = new THREE.Mesh(stemGeo, stemMat);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.0, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
   stem.position.y = 0.5;
   pinGroup.add(stem);
-
   return pinGroup;
 }
 
-function createPlanetTexture(baseColorHex, spotColorHex) {
+// Procedural Planet Hash Generator
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return hash;
+}
+
+function generateColor(hash) {
+  const h = Math.abs(hash) % 360;
+  return `hsl(${h}, 50%, 50%)`;
+}
+
+function createPlanetTexture(name) {
+  const key = name.toLowerCase();
+  
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 256;
+  canvas.width = 512; canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = baseColorHex;
+  
+  // Custom procedural colors based on name string
+  const hash = hashCode(key);
+  ctx.fillStyle = generateColor(hash);
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = spotColorHex;
-  for (let i = 0; i < 30; i++) {
+  
+  ctx.fillStyle = generateColor(hash * 2);
+  for (let i = 0; i < 40; i++) {
     const x = Math.random() * canvas.width;
     const y = Math.random() * canvas.height;
-    const r = 15 + Math.random() * 40;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 10 + Math.random() * 30, 0, Math.PI * 2); ctx.fill();
   }
+  
   const tex = new THREE.CanvasTexture(canvas);
   tex.needsUpdate = true;
   return tex;
 }
-
-const planetTextures = {
-  mars: createPlanetTexture('#c1440e', '#872300'),
-  moon: createPlanetTexture('#888888', '#555555'),
-  jupiter: createPlanetTexture('#d4a373', '#bc6c25'),
-  venus: createPlanetTexture('#e3bb76', '#b08968'),
-  sun: createPlanetTexture('#ffb703', '#fb8500')
-};
 
 function createPlanetMesh(name, radius) {
   const key = name.toLowerCase();
@@ -94,44 +90,25 @@ function createPlanetMesh(name, radius) {
     const mat = new THREE.MeshStandardMaterial({ map: earthAlbedoMap, roughness: 0.6, metalness: 0.1 });
     return new THREE.Mesh(geo, mat);
   }
-  const tex = planetTextures[key] || planetTextures.mars;
   const geo = new THREE.SphereGeometry(radius, 32, 32);
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7 });
+  const mat = new THREE.MeshStandardMaterial({ map: createPlanetTexture(name), roughness: 0.7 });
   return new THREE.Mesh(geo, mat);
 }
 
 function renderScene(data) {
-  while (activeStageGroup.children.length > 0) {
-    activeStageGroup.remove(activeStageGroup.children[0]);
-  }
-  currentStackMeshes = [];
-  fillProgress = 0;
-
   const sampleCount = 30;
   const startX = -11.0;
   const endX = 11.0;
   const planetRadius = 2.5;
-  
-  camera.position.set(0, 4, 30);
-  camera.lookAt(0, 0, 0);
 
-  // Reusable function to build the straight bridge
   function buildStraightBridge() {
-    // Start slightly outside the planet geometry to avoid clipping
     const edgeStart = startX + 2.6; 
     const edgeEnd = endX - 2.6;
-
     for (let i = 0; i < sampleCount; i++) {
       const t = (i + 1) / (sampleCount + 1);
       const x = THREE.MathUtils.lerp(edgeStart, edgeEnd, t);
-      const y = 0; // Perfectly straight line on the Y axis
-      const z = 0; // Perfectly straight line on the Z axis
-
-      const boxGeo = new THREE.BoxGeometry(0.5, 0.22, 0.22);
-      const boxMat = new THREE.MeshStandardMaterial({ color: 0x223344, roughness: 0.4 });
-      const mesh = new THREE.Mesh(boxGeo, boxMat);
-      mesh.position.set(x, y, z);
-
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.22, 0.22), new THREE.MeshStandardMaterial({ color: 0x223344, roughness: 0.4 }));
+      mesh.position.set(x, 0, 0);
       activeStageGroup.add(mesh);
       currentStackMeshes.push(mesh);
     }
@@ -161,7 +138,6 @@ function renderScene(data) {
     activeStageGroup.add(earth2);
 
     buildStraightBridge();
-
   } else if (data.mode === "hybrid") {
     document.getElementById('stageLegend').textContent = `Mode: Hybrid (${data.origin.name} → ${data.destination.name})`;
     const isOriginCity = data.origin.type === "city";
@@ -197,20 +173,17 @@ function renderScene(data) {
       planet.position.set(endX, 0, 0);
       activeStageGroup.add(planet);
     }
-
     buildStraightBridge();
-
   } else {
-    document.getElementById('stageLegend').textContent = `Mode: Interplanetary (${data.origin.name} → ${data.destination.name})`;
+    document.getElementById('stageLegend').textContent = `Mode: Space (${data.origin.name} → ${data.destination.name})`;
 
     const planet1 = createPlanetMesh(data.origin.name, planetRadius);
     planet1.position.set(startX, 0, 0);
     activeStageGroup.add(planet1);
 
-    const planet2 = createPlanetMesh(data.destination.name, 2.0); // Make destination slightly smaller visually
+    const planet2 = createPlanetMesh(data.destination.name, 2.0); 
     planet2.position.set(endX, 0, 0);
     activeStageGroup.add(planet2);
-
     buildStraightBridge();
   }
 }
@@ -220,12 +193,9 @@ function animate() {
 
   if (currentStackMeshes.length > 0) {
     fillProgress += 0.012; 
-    if (fillProgress > 1.3) {
-      fillProgress = 0; 
-    }
-
+    if (fillProgress > 1.3) fillProgress = 0; 
+    
     const visibleLimit = Math.floor(Math.min(fillProgress, 1.0) * currentStackMeshes.length);
-
     currentStackMeshes.forEach((mesh, idx) => {
       if (idx <= visibleLimit) {
         mesh.material.color.setHex(0x00ffff);
@@ -236,14 +206,25 @@ function animate() {
       }
     });
   }
-
   renderer.render(scene, camera);
 }
 animate();
 
 document.getElementById('findOutBtn').addEventListener('click', async () => {
   const headline = document.getElementById('resultHeadline');
+  
+  // UI Reset Fix
   headline.textContent = "Calculating distance & stack...";
+  document.getElementById('statCount').textContent = "--";
+  document.getElementById('statDistance').textContent = "--";
+  document.getElementById('statStride').textContent = "--";
+  document.getElementById('stageLegend').textContent = "Awaiting response...";
+  
+  // Clear the 3D visual immediately
+  while (activeStageGroup.children.length > 0) {
+    activeStageGroup.remove(activeStageGroup.children[0]);
+  }
+  currentStackMeshes = [];
   
   try {
     const res = await fetch('/api/calculate', {
@@ -263,7 +244,6 @@ document.getElementById('findOutBtn').addEventListener('click', async () => {
     }
 
     headline.innerHTML = `It takes <span class="highlight">${data.total_count.toLocaleString()}</span> ${data.object.name}s to span from ${data.origin.name} to ${data.destination.name}.`;
-    
     document.getElementById('statCount').textContent = data.total_count.toLocaleString();
     document.getElementById('statDistance').textContent = `${data.distance_km.toLocaleString()} km`;
     document.getElementById('statStride').textContent = `${data.object.dimension_meters} m`;
@@ -274,8 +254,6 @@ document.getElementById('findOutBtn').addEventListener('click', async () => {
     headline.textContent = "Server connection error.";
   }
 });
-
-window.addEventListener('load', () => document.getElementById('findOutBtn').click());
 
 window.addEventListener('resize', () => {
   camera.aspect = container.clientWidth / container.clientHeight;

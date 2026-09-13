@@ -1,273 +1,247 @@
 import os
 import math
 import requests
-import re
 import json
-import random
+import re
+from functools import lru_cache
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
+
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+# WARNING: Do not change this to 3.5, 3.6, or 3.8. Those models do not exist 
+# and will cause a total API failure. 1.5-flash is the current stable version.
+GEMINI_MODEL = "gemini-3.5-flash-lite" 
+
 app = Flask(__name__)
 
 # =========================================================================
-# COSMIC STACK (PRESERVED)
+# HELPER FUNCTIONS
 # =========================================================================
-PLANETS_KM = {
-    "sun": 0, "mercury": 57900000, "venus": 108200000, "earth": 149600000,
-    "moon": 149600000 + 384400, "mars": 227900000, "jupiter": 778500000,
-    "saturn": 1433000000, "uranus": 2872500000, "neptune": 4495100000
-}
 
-def haversine_distance_km(lat1, lon1, lat2, lon2):
-    R = 6371.0
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    a = (math.sin(dlat / 2) ** 2 +
-         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
-         math.sin(dlon / 2) ** 2)
-    return R * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
-
+@lru_cache(maxsize=256)
 def get_coordinates(location_name):
-    url = f"https://nominatim.openstreetmap.org/search?q={location_name}&format=json&limit=1"
-    headers = {"User-Agent": "CosmicStackApp/1.0"}
+    """Fetches OSM coordinates ONLY if we are certain it is on Earth."""
+    if location_name.lower() == "earth":
+        return None
+    url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(location_name)}&format=json&limit=1"
+    # Improved User-Agent to prevent aggressive OSM rate-limiting
+    headers = {"User-Agent": "AbsurdProtocol_CosmicStack/1.1 (Caching Engine)"}
     try:
-        response = requests.get(url, headers=headers).json()
+        response = requests.get(url, headers=headers, timeout=5).json()
         if response:
             return {"lat": float(response[0]["lat"]), "lon": float(response[0]["lon"]), "name": response[0]["name"]}
     except Exception as e:
         print(f"[!] OSM Geocoding Error: {e}")
     return None
 
-def get_object_dimension(object_name):
-    fallback_size = 1.0
-    if not GEMINI_API_KEY:
-        print("\n[!] WARNING: GEMINI_API_KEY not found in environment/.env!\n")
-        return fallback_size
+def haversine_distance_km(lat1, lon1, lat2, lon2):
+    """Calculates exact Earth distance to bypass AI for local towns."""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2)
+    return R * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
 
-    # Use a fast, lightweight flash endpoint
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={GEMINI_API_KEY}"
-    prompt = (
-        f"What is the average length or height in meters of a single '{object_name}'? "
-        f"Respond with STRICTLY a single number and absolutely no other text, symbols, or units. "
-        f"Example: 1.85"
-    )
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    headers = {"Content-Type": "application/json"}
+def clean_json_string(raw_string):
+    """Strips Markdown wrappers and control characters that crash the JSON parser."""
+    cleaned = re.sub(r'^```json', '', raw_string, flags=re.IGNORECASE | re.MULTILINE)
+    cleaned = re.sub(r'```$', '', cleaned, flags=re.MULTILINE)
+    cleaned = cleaned.replace('\n', ' ').replace('\r', '').replace('\t', ' ')
+    return cleaned.strip()
+
+def fetch_gemini_json(prompt):
+    """Helper to fetch strictly formatted JSON from Gemini."""
+    if not GEMINI_API_KEY:
+        print("[!] GEMINI_API_KEY is missing.")
+        return None
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"responseMimeType": "application/json"},
+        "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
+    }
     
     try:
-        # timeout=(connect_timeout, read_timeout)
-        # 5s to establish connection, 15s to wait for Google's model response
-        response = requests.post(url, json=payload, headers=headers, timeout=(5, 15))
-        res = response.json()
+        response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=35)
         
-        if "error" in res:
-            print(f"\n[!] GEMINI API ERROR ({res['error'].get('code')}): {res['error'].get('message')}\n")
-            return fallback_size
+        # Catch API rejections (like Invalid API Key or Fake Model)
+        if response.status_code != 200:
+            print(f"[!] Gemini API HTTP Error {response.status_code}: {response.text}")
+            return None
             
+        res = response.json()
         if "candidates" in res and res["candidates"]:
             text_response = res["candidates"][0]["content"]["parts"][0]["text"].strip()
-            print(f"[+] Object '{object_name}' returned dimension: '{text_response}'")
-            match = re.search(r"[-+]?\d*\.\d+|\d+", text_response)
-            if match:
-                parsed_val = float(match.group())
-                if parsed_val > 0:
-                    return parsed_val
-
-        print(f"[!] No valid candidate text found. Response: {res}")
-        return fallback_size
-        
-    except requests.exceptions.Timeout as e:
-        print(f"\n[!] Gemini API Request timed out: {e}\n")
-        return fallback_size
+            return json.loads(clean_json_string(text_response))
     except Exception as e:
-        print(f"\n[!] Exception during dimension lookup: {e}\n")
-        return fallback_size
+        print(f"[!] Gemini JSON Fetch Crash: {e}")
+    return None
+
+# =========================================================================
+# ROUTES: FRONTEND
+# =========================================================================
 
 @app.route("/")
-def home():
-    return render_template("index.html")
+def home(): return render_template("index.html")
 
 @app.route("/cosmic-stack")
-def cosmic_stack():
-    return render_template("cosmic_stack.html")
+def cosmic_stack(): return render_template("cosmic_stack.html")
+
+@app.route("/rabbit-hole")
+def rabbit_hole(): return render_template("rabbit_hole.html")
+
+@app.route("/height-compare")
+def height_compare(): return render_template("height_compare.html")
 
 @app.route("/maker")
-def maker_portfolio():
-    return render_template("maker.html")
+def maker_portfolio(): return render_template("maker.html")
+
+# =========================================================================
+# ROUTE: COSMIC STACK
+# =========================================================================
 
 @app.route("/api/calculate", methods=["POST"])
 def calculate():
     data = request.get_json() or {}
-    p1 = str(data.get("origin", "")).strip().lower()
-    p2 = str(data.get("destination", "")).strip().lower()
-    obj_name = str(data.get("measurement_object", "")).strip().lower()
+    p1 = str(data.get("origin", "")).strip()
+    p2 = str(data.get("destination", "")).strip()
+    obj_name = str(data.get("measurement_object", "")).strip()
 
     if not p1 or not p2 or not obj_name:
         return jsonify({"success": False, "error": "Missing input fields."}), 400
 
-    dimension_meters = get_object_dimension(obj_name)
-    is_p1_planet = p1 in PLANETS_KM
-    is_p2_planet = p2 in PLANETS_KM
+    is_same = p1.lower() == p2.lower()
 
-    if is_p1_planet and is_p2_planet:
-        mode = "planetary"
-        if (p1 == "earth" and p2 == "moon") or (p1 == "moon" and p2 == "earth"):
-            dist_km = 384400.0
-        else:
-            dist_km = abs(PLANETS_KM[p1] - PLANETS_KM[p2])
-        origin_meta = {"name": p1.title(), "type": "planet"}
-        dest_meta = {"name": p2.title(), "type": "planet"}
+    # AI analyzes FIRST to prevent OSM from turning "Moon" into a terrestrial village
+    prompt = f"""
+    Analyze: Origin: "{p1}", Destination: "{p2}", Object: "{obj_name}"
+    1. Is Origin valid? (true/false)
+    2. Is Origin located on Earth (like a city or country) or in space (like a planet, star, galaxy)? (Answer strictly 'earth' or 'space')
+    3. Is Destination valid? (true/false)
+    4. Is Destination located on Earth or in space? (Answer strictly 'earth' or 'space')
+    5. Is Object valid? (true/false)
+    6. Object's maximum major dimension in meters? (number)
+    7. Physical distance between them in kilometers? (number. convert lightyears to km).
+    Schema: {{"origin_valid": true, "origin_type": "space", "destination_valid": true, "destination_type": "earth", "object_valid": true, "distance_km": 384400.0, "object_dimension_meters": 35.5}}
+    """
+    
+    ai_data = fetch_gemini_json(prompt)
+    if not ai_data:
+        return jsonify({"success": False, "error": "API communication failed. Check server logs."}), 500
 
-    elif not is_p1_planet and not is_p2_planet:
-        mode = "terrestrial"
-        coords1 = get_coordinates(p1)
-        coords2 = get_coordinates(p2)
-        if not coords1 or not coords2:
-            return jsonify({"success": False, "error": "Could not find one of the Earth locations."}), 400
-        
+    errors = []
+    if not ai_data.get("origin_valid"): errors.append("starting point")
+    if not ai_data.get("destination_valid"): errors.append("destination point")
+    if not ai_data.get("object_valid"): errors.append("object name")
+
+    if errors:
+        msg = " and ".join(errors)
+        return jsonify({"success": False, "error": f"Please enter a valid {msg}."}), 400
+
+    # ONLY check OSM if AI confirmed they are Earth locations
+    is_p1_earth = ai_data.get("origin_type", "earth") == "earth"
+    is_p2_earth = ai_data.get("destination_type", "earth") == "earth"
+    
+    coords1 = get_coordinates(p1) if is_p1_earth else None
+    coords2 = get_coordinates(p2) if is_p2_earth else None
+    
+    is_terrestrial = bool(coords1 and coords2)
+
+    # Use Haversine if both are local earth coords, otherwise use AI distance
+    if is_same:
+        dist_km = 0.0
+    elif is_terrestrial:
         dist_km = haversine_distance_km(coords1["lat"], coords1["lon"], coords2["lat"], coords2["lon"])
+    else:
+        dist_km = float(ai_data.get("distance_km", 0))
+
+    dimension_meters = float(ai_data.get("object_dimension_meters", 1.0))
+    
+    mode = "interplanetary"
+    origin_meta = {"name": p1.title(), "type": "planet"}
+    dest_meta = {"name": p2.title(), "type": "planet"}
+
+    if is_terrestrial:
+        mode = "terrestrial"
         origin_meta = {"name": coords1["name"], "coords": coords1, "type": "city"}
         dest_meta = {"name": coords2["name"], "coords": coords2, "type": "city"}
-
-    else:
+    elif coords1:
         mode = "hybrid"
-        planet_key = p1 if is_p1_planet else p2
-        city_key = p2 if is_p1_planet else p1
-        city_coords = get_coordinates(city_key)
-        
-        if not city_coords:
-            return jsonify({"success": False, "error": "Could not find the Earth location."}), 400
-
-        dist_km = 384400.0 if planet_key == "moon" else abs(PLANETS_KM["earth"] - PLANETS_KM[planet_key])
-        if is_p1_planet:
-            origin_meta = {"name": planet_key.title(), "type": "planet"}
-            dest_meta = {"name": city_coords["name"], "coords": city_coords, "type": "city"}
-        else:
-            origin_meta = {"name": city_coords["name"], "coords": city_coords, "type": "city"}
-            dest_meta = {"name": planet_key.title(), "type": "planet"}
+        origin_meta = {"name": coords1["name"], "coords": coords1, "type": "city"}
+    elif coords2:
+        mode = "hybrid"
+        dest_meta = {"name": coords2["name"], "coords": coords2, "type": "city"}
 
     dist_meters = dist_km * 1000.0
     total_count = math.ceil(dist_meters / dimension_meters) if dimension_meters > 0 else 0
 
     return jsonify({
-        "success": True,
-        "mode": mode,
-        "distance_km": round(dist_km, 2),
-        "distance_meters": round(dist_meters, 2),
-        "total_count": total_count,
-        "object": {"name": obj_name.title(), "dimension_meters": dimension_meters},
-        "origin": origin_meta,
-        "destination": dest_meta
+        "success": True, "mode": mode, "distance_km": round(dist_km, 2), "distance_meters": round(dist_meters, 2),
+        "total_count": total_count, "object": {"name": obj_name.title(), "dimension_meters": dimension_meters},
+        "origin": origin_meta, "destination": dest_meta
     })
 
 # =========================================================================
-# RABBIT HOLE (PRESERVED)
+# ROUTE: RABBIT HOLE 
 # =========================================================================
-FALLBACK_TOPICS = [
-    {
-        "topic": "The Great Emu War of 1932",
-        "pages": [
-            {
-                "page": 1,
-                "title": "Chamber 1: The Outnumbered Frontier",
-                "upper_content": "Following the devastation of World War I, thousands of Australian veterans were given marginal grazing land in Western Australia to cultivate wheat crops. As the Great Depression set in by October 1932, the farmers faced an unprecedented ecological invasion: roughly 20,000 adult emus migrated from central inland regions toward coastal farmlands searching for water supplies following their annual breeding cycle. The flightless birds tore through protective wire fencing and decimated square miles of harvestable wheat.\n\nWith agricultural ruin imminent, the veteran farmers formed a deputation and met directly with the Minister of Defence, Sir George Pearce. Accustomed to modern military hardware, the settlers lobbied for artillery support to eradicate the massive herds. Pearce approved the deployment under the strict condition that machine guns and ammunition be handled exclusively by military personnel, while the local farmers financed the rations and transport.",
-                "lower_content": "Command of the tactical detachment was entrusted to Major G.P.W. Meredith of the Seventh Heavy Battery of the Royal Australian Artillery. Meredith arrived in Campion on November 2, 1932, bringing along Sergeant S. McMurray, Gunner J. O'Halloran, two Lewis automatic machine guns, and 10,000 rounds of .303 caliber ammunition.\n\nInitial intelligence suggested the birds could be corralled into tight ambushes. However, the soldiers immediately encountered unpredictable guerrilla maneuvers from the flock. The massive birds split into agile splinter units of a dozen birds each, outrunning the gunners across loose red sand and making concentrated bursts nearly impossible."
-            },
-            {
-                "page": 2,
-                "title": "Chamber 2: Mechanical Failures and Desert Defeat",
-                "upper_content": "On November 4, Major Meredith established an ambush position near a crucial water dam where over 1,000 emus were seen congregating. The gunners withheld their fire until the flock came within 100 meters of the muzzle line. As Meredith gave the order to open fire, the Lewis gun managed to discharge only twelve rounds before a heavy particulate jam locked the bolt assembly.\n\nThe startled flock scattered into the shrubbery in less than fifteen seconds, leaving only a dozen dead birds behind. Dust and airborne grit from the arid environment continuously contaminated the magazine cylinders, causing catastrophic weapon failures. Facing mounting embarrassment in federal parliament, Meredith ordered an experimental tactic: mounting one of the heavy Lewis machine guns onto the flatbed of a modified Ford truck to pursue the birds across the open plain.",
-                "lower_content": "The motorized experiment failed disastrously. The Ford truck was unable to negotiate the rough terrain, logs, and hidden rabbit burrows at high speeds. The passenger gunner was jostled so severely that not a single aimed shot could be fired, and the chase ended abruptly when an evasive emu became entangled in the truck's steering link, sending the vehicle careening off-course.\n\nBy November 8, parliament recalled the military. Official reports logged that 2,500 rounds of ammunition had been expended with scarcely 200 birds dispatched. Major Meredith remarked with begrudging awe that each emu possessed the invulnerability of a battle tank, capable of sustaining multiple bullet strikes while running away at 50 kilometers per hour."
-            },
-            {
-                "page": 3,
-                "title": "Chamber 3: The Ceasefire and the Bounty Solution",
-                "upper_content": "A second offensive was authorized a week later on November 13 under intense political pressure from the Western Australian Premier. Meredith's team resumed fire through December 2, claiming approximately 986 kills from another 9,860 rounds expended—an inefficient ratio of ten rounds of heavy ammunition for every confirmed casualty.\n\nOpposition politician A.E. Green ridiculed the campaign on the floor of the House of Representatives, asking sarcastically whether medals should be struck for the surviving emus who had decisively routed the Australian military. The army was ordered to execute an unceremonious total withdrawal.",
-                "lower_content": "Instead of military expeditions, the Australian government implemented a direct civilian bounty system in 1934. Local farmers armed with light hunting rifles accomplished what heavy artillery could not: during a single six-month window in 1934, more than 57,034 individual bounties were successfully claimed.\n\nThe military never engaged the avian population again, cementing the operation as one of the most bizarre and one-sided logistical defeats in modern Commonwealth history."
-            }
-        ],
-        "mcqs": [
-            {"q": "Roughly how many emus invaded Western Australian wheat farms in October 1932?", "options": ["20,000", "5,000", "50,000", "2,000"], "answer": "20,000"},
-            {"q": "What military unit was assigned to the operation under Major G.P.W. Meredith?", "options": ["Royal Australian Artillery", "Imperial Camel Corps", "Desert Scouts", "7th Light Horse"], "answer": "Royal Australian Artillery"},
-            {"q": "What specific model of automatic machine gun was issued to the soldiers?", "options": ["Lewis gun", "Maxim gun", "Vickers gun", "Bren gun"], "answer": "Lewis gun"},
-            {"q": "On what date did Major Meredith arrive in Campion with his detachment?", "options": ["November 2, 1932", "October 14, 1932", "December 1, 1932", "August 12, 1931"], "answer": "November 2, 1932"},
-            {"q": "How many rounds did the machine gun fire at the dam ambush before jamming?", "options": ["Only 12 rounds", "Over 500 rounds", "Zero rounds", "Exactly 250 rounds"], "answer": "Only 12 rounds"},
-            {"q": "What mechanical disaster stopped the truck pursuit across the outback plain?", "options": ["An emu tangled in the steering link", "The engine overheated", "A tire burst on a rock", "The fuel tank ruptured"], "answer": "An emu tangled in the steering link"},
-            {"q": "Roughly how many rounds had been fired before the temporary recall on November 8?", "options": ["2,500 rounds", "10,000 rounds", "500 rounds", "50,000 rounds"], "answer": "2,500 rounds"},
-            {"q": "How many bounties were successfully claimed by local settlers in six months of 1934?", "options": ["57,034", "12,400", "100,000", "5,200"], "answer": "57,034"}
-        ],
-        "descriptive": [
-            {"q": "What was the surname of the Defence Minister who approved the military deployment?", "keywords": ["pearce", "george pearce"]},
-            {"q": "What speed (in km/h) could the emus reach when sprinting across the rough terrain?", "keywords": ["50", "50 km/h", "50km/h", "50 kph"]}
-        ]
-    }
-]
-
-@app.route("/rabbit-hole")
-def rabbit_hole():
-    return render_template("rabbit_hole.html")
 
 @app.route("/api/rabbit/generate", methods=["GET"])
 def rabbit_generate():
-    selected_fallback = random.choice(FALLBACK_TOPICS)
-
-    if not GEMINI_API_KEY:
-        return jsonify({"success": True, "data": selected_fallback})
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    prompt = """
-Generate a high-density 3-chamber deep-dive historical narrative in JSON.
-Schema:
-{
-  "topic": "Topic Title",
-  "pages": [
-    {
-      "page": 1,
-      "title": "Chamber 1: Title",
-      "upper_content": "Two substantial paragraphs totaling 150 words.",
-      "lower_content": "Two substantial paragraphs totaling 150 words with specific names and numbers."
-    },
-    {
-      "page": 2,
-      "title": "Chamber 2: Title",
-      "upper_content": "Two substantial paragraphs totaling 150 words.",
-      "lower_content": "Two substantial paragraphs totaling 150 words with specific names and numbers."
-    },
-    {
-      "page": 3,
-      "title": "Chamber 3: Title",
-      "upper_content": "Two substantial paragraphs totaling 150 words.",
-      "lower_content": "Two substantial paragraphs totaling 150 words with specific names and numbers."
-    }
-  ],
-  "mcqs": [
-    {"q": "Question", "options": ["Correct", "A", "B", "C"], "answer": "Correct"}
-  ],
-  "descriptive": [
-    {"q": "Question", "keywords": ["answer1", "answer2"]}
-  ]
-}
-Requirements: Exactly 8 items in 'mcqs', exactly 2 in 'descriptive'. Place multiple answers in lower_content. Strictly JSON.
-"""
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"responseMimeType": "application/json"}
-    }
-    headers = {"Content-Type": "application/json"}
-
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=6).json()
-        if "candidates" not in res or not res["candidates"]:
-            return jsonify({"success": True, "data": selected_fallback})
+        wiki_url = "https://en.wikipedia.org/w/api.php?action=query&format=json&generator=random&grnnamespace=0&prop=info|extracts&exintro=false&explaintext=true"
+        wiki_res = requests.get(wiki_url, headers={"User-Agent": "AbsurdProtocolApp/1.0"}, timeout=45).json()
+        pages = wiki_res.get("query", {}).get("pages", {})
+        page = list(pages.values())[0]
+        wiki_title = page.get("title", "Historical Event")
+        # Increased Wikipedia extract grab to 8000 characters
+        wiki_extract = page.get("extract", "")[:8000] 
 
-        text_content = res["candidates"][0]["content"]["parts"][0]["text"].strip()
-        return jsonify({"success": True, "data": json.loads(text_content)})
+        prompt = f"""
+        Here is text from Wikipedia about '{wiki_title}':
+        {wiki_extract}
+
+        Format this into a 3-chamber narrative. 
+        
+        CRITICAL INSTRUCTIONS:
+        1. Each 'upper_content' and 'lower_content' MUST be long-form, highly detailed paragraphs of at least 150 words each. Do NOT summarize too heavily; provide rich, deep context so it fills the screen.
+        2. You MUST ONLY ask questions in the 'mcqs' and 'descriptive' arrays where the EXACT answer is explicitly written in the chamber text you just generated. If the user cannot find the answer by reading your generated text, you fail.
+
+        Schema:
+        {{
+          "topic": "{wiki_title}",
+          "pages": [
+            {{ "page": 1, "title": "Chamber 1", "upper_content": "Long detailed paragraph...", "lower_content": "Long detailed paragraph..." }},
+            {{ "page": 2, "title": "Chamber 2", "upper_content": "Long detailed paragraph...", "lower_content": "Long detailed paragraph..." }},
+            {{ "page": 3, "title": "Chamber 3", "upper_content": "Long detailed paragraph...", "lower_content": "Long detailed paragraph..." }}
+          ],
+          "mcqs": [
+            {{"q": "Question?", "options": ["Correct", "Wrong1", "Wrong2", "Wrong3"], "answer": "Correct"}}
+          ],
+          "descriptive": [
+            {{"q": "Question?", "keywords": ["keyword1", "keyword2"]}}
+          ]
+        }}
+        CRITICAL: Exactly 8 MCQs and 2 descriptive. Escape all double quotes inside your strings using \\". Do not use markdown.
+        """
+        
+        for attempt in range(2):
+            ai_data = fetch_gemini_json(prompt)
+            if ai_data: return jsonify({"success": True, "data": ai_data})
+            
+        raise Exception("AI returned empty or invalid JSON twice.")
+            
     except Exception as e:
-        print(f"[!] Rabbit Gen Exception: {e}. Serving fallback.")
-        return jsonify({"success": True, "data": selected_fallback})
+        print(f"[!] Rabbit Gen Exception: {e}")
+        return jsonify({"success": False, "error": "Generation failed."})
 
 @app.route("/api/rabbit/roast", methods=["POST"])
 def rabbit_roast():
@@ -275,64 +249,45 @@ def rabbit_roast():
     score = body.get("score", 0)
     total = body.get("total", 10)
     peeks = body.get("peeks", 0)
-    rage_quit = body.get("rage_quit", False)
     topic = body.get("topic", "the subject")
-
     pct = int((score / total) * 100) if total > 0 else 0
 
-    if rage_quit:
-        rage_roasts = [
-            "We detected you closing or ditching the tab. Your dopamine receptors are completely fried. Go outside, leave your phone behind, and touch a tree.",
-            "Rage quitting already? Your attention span lasted approximately 8 seconds before requiring emergency stimulation. Sit in timeout.",
-            "You closed the window because a few paragraphs looked like a doctoral dissertation to your fried brain. Ten seconds in the penalty box for you."
-        ]
-        return jsonify({"success": True, "roast": random.choice(rage_roasts), "tier": "rage_quit", "pct": 0})
+    if body.get("rage_quit", False):
+        return jsonify({"success": True, "roast": "Score: 0%. Rage quitting already? Your attention span lasted approximately 8 seconds before requiring emergency stimulation.", "pct": 0})
 
-    tier_roasts = {
-        0: f"Score: {pct}%. Remarkable. You stared at {topic} with the cognitive retention of a goldfish swimming backward. Even guessing randomly yields better results.",
-        10: f"Score: {pct}%. You managed to get one question right, presumably by a blind muscle spasm on your trackpad. A true triumph of sensory decay.",
-        20: f"Score: {pct}%. Your brain treated the paragraphs like Terms of Service agreements: scrolled past with complete, willful ignorance.",
-        30: f"Score: {pct}%. You clearly saw the middle button, panicked at the sight of letters, clicked immediately, and ignored the rest of the universe.",
-        40: f"Score: {pct}%. Skimming champion of the century. You caught a few stray nouns while your mind drifted toward what to eat for dinner.",
-        50: f"Score: {pct}%. You made it halfway before your brain demanded a split-screen Subway Surfers gameplay video with soap cutting audio just to survive.",
-        60: f"Score: {pct}%. Not completely hopeless, but your concentration snapped the second any paragraph exceeded three sentences.",
-        70: f"Score: {pct}%. A respectable showing. You actually read most of it, but missed the fine print because your finger was itching to click out.",
-        80: f"Score: {pct}%. Impressive focus. You almost outsmarted the trap, missing just a tiny detail tucked beneath the fold.",
-        90: f"Score: {pct}%. Nearly flawless. You resisted the urge to skim and actually absorbed the obscure trivia like a scholar.",
-        100: f"Score: {pct}%. Congratulations. You have the patience of a Shaolin monk, nerves of cold titanium, and unquestionably way too much free time. Here is your exit."
-    }
-
-    closest_key = min(tier_roasts.keys(), key=lambda k: abs(k - pct))
-    fallback = tier_roasts[closest_key]
-
-    if not GEMINI_API_KEY:
-        return jsonify({"success": True, "roast": fallback, "pct": pct})
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     prompt = f"""
-Write a biting, funny 2-sentence comedic roast to a web user who scored exactly {pct}% ({score}/{total}) on an attention span memory quiz after reading about '{topic}'.
-Always start the roast directly with 'Score: {pct}%.' followed by the roast text.
-User peeks back to home tab: {peeks}.
-Keep it strictly under 3 sentences. Output ONLY the roast text.
-"""
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    headers = {"Content-Type": "application/json"}
-
+    Write a biting, ruthless 4-to-5 sentence comedic roast to a web user who scored exactly {pct}% ({score}/{total}) on a reading memory quiz after reading about '{topic}'.
+    Always start the roast directly with 'Score: {pct}%.' followed by the roast text. 
+    User cheated by peeking at other tabs {peeks} times. You MUST mock them heavily for their peek attempts if peeks > 0.
+    Output ONLY the string text. Do not format with markdown.
+    """
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
+    }
+    
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=4).json()
-        roast_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
-        if not roast_text.startswith(f"Score: {pct}%"):
-            roast_text = f"Score: {pct}%. " + roast_text
-        return jsonify({"success": True, "roast": roast_text, "pct": pct})
-    except Exception:
-        return jsonify({"success": True, "roast": fallback, "pct": pct})
+        res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15).json()
+        if "candidates" in res and res["candidates"]:
+            roast_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
+            if not roast_text.startswith(f"Score: {pct}%"):
+                roast_text = f"Score: {pct}%. " + roast_text
+            return jsonify({"success": True, "roast": roast_text, "pct": pct})
+    except Exception as e:
+        print(f"Roast crash: {e}")
+        
+    return jsonify({"success": True, "roast": f"Score: {pct}%. The AI crashed trying to comprehend your score.", "pct": pct})
 
 # =========================================================================
-# CELEBRITY HEIGHT COMPARE (BUTTON C COMPONENT)
+# ROUTE: HEIGHT COMPARE
 # =========================================================================
-@app.route("/height-compare")
-def height_compare():
-    return render_template("height_compare.html")
 
 @app.route("/api/height-compare", methods=["POST"])
 def api_height_compare():
@@ -340,65 +295,48 @@ def api_height_compare():
     celeb_name = str(data.get("celebrity", "")).strip()
     user_height_str = str(data.get("user_height", "")).strip()
 
-    if not celeb_name or not user_height_str:
-        return jsonify({"success": False, "error": "Both celebrity name and user height are required."}), 400
-
     try:
         user_height_cm = float(user_height_str)
-        if user_height_cm <= 30 or user_height_cm >= 300:
-            return jsonify({"success": False, "error": "Please enter a valid height between 30 cm and 300 cm."}), 400
+        if user_height_cm <= 0: raise ValueError
     except ValueError:
-        return jsonify({"success": False, "error": "Invalid user height format. Please enter a valid number in cm."}), 400
+        return jsonify({"success": False, "error": "Invalid height."}), 400
 
-    # 1. Fetch Image from Wikipedia
+    prompt = f"""
+    Analyze: "{celeb_name}"
+    1. Is this a real, widely known famous person or historical figure? (true/false)
+    2. If true, what is their height in centimeters? (number only). If false, return 0.
+    Schema: {{"is_valid": true, "height_cm": 175.0}}
+    """
+    
+    ai_data = fetch_gemini_json(prompt)
+    if not ai_data:
+        return jsonify({"success": False, "error": "API communication failed. Check server logs."}), 500
+    if not ai_data.get("is_valid"):
+        return jsonify({"success": False, "error": "Please enter the name of an actual celebrity, check the input."}), 400
+
+    celeb_height_cm = float(ai_data.get("height_cm", 175.0))
+
     image_url = None
-    wiki_title = celeb_name
+    wiki_title = celeb_name.title()
     try:
-        wiki_search_url = f"https://en.wikipedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch={requests.utils.quote(celeb_name)}&gsrlimit=1&prop=pageimages&pithumbsize=600"
-        wiki_res = requests.get(wiki_search_url, headers={"User-Agent": "HeightCompareApp/1.0"}, timeout=4).json()
+        wiki_url = f"https://en.wikipedia.org/w/api.php?action=query&format=json&redirects=1&generator=search&gsrsearch={requests.utils.quote(celeb_name)}&gsrlimit=1&prop=pageimages&pithumbsize=600&pilicense=any"
+        wiki_res = requests.get(wiki_url, headers={"User-Agent": "HeightApp/1.0"}, timeout=5).json()
         pages = wiki_res.get("query", {}).get("pages", {})
         for _, pdata in pages.items():
-            wiki_title = pdata.get("title", celeb_name)
-            if "thumbnail" in pdata:
-                image_url = pdata["thumbnail"].get("source")
+            wiki_title = pdata.get("title", wiki_title)
+            if "thumbnail" in pdata: image_url = pdata["thumbnail"].get("source")
             break
-    except Exception as e:
-        print(f"[!] Wikipedia Image Fetch Error: {e}")
-
-    # 2. Fetch Height in cm from Gemini
-    celeb_height_cm = 175.0
-    if GEMINI_API_KEY:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={GEMINI_API_KEY}"
-        prompt = f"What is the official or estimated height in centimeters of '{celeb_name}'? Respond with STRICTLY a single number (e.g., 185) and absolutely no units, letters, or punctuation."
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        headers = {"Content-Type": "application/json"}
-        try:
-            res = requests.post(url, json=payload, headers=headers, timeout=4).json()
-            if "candidates" in res and res["candidates"]:
-                raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
-                match = re.search(r"\d+(\.\d+)?", raw_text)
-                if match:
-                    val = float(match.group())
-                    if 50 <= val <= 280:
-                        celeb_height_cm = val
-        except Exception as e:
-            print(f"[!] Gemini Height Lookup Error: {e}")
+    except Exception:
+        pass
 
     diff = round(user_height_cm - celeb_height_cm, 1)
 
     return jsonify({
-        "success": True,
-        "celebrity": {
-            "name": wiki_title,
-            "height_cm": celeb_height_cm,
-            "image_url": image_url
-        },
-        "user": {
-            "height_cm": user_height_cm
-        },
-        "diff_cm": diff,
+        "success": True, "celebrity": {"name": wiki_title, "height_cm": celeb_height_cm, "image_url": image_url},
+        "user": {"height_cm": user_height_cm}, "diff_cm": diff,
         "comparison_text": f"You are {abs(diff)} cm {'taller' if diff > 0 else 'shorter'} than {wiki_title}." if diff != 0 else f"You are exactly the same height as {wiki_title}!"
     })
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

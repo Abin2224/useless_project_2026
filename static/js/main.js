@@ -59,6 +59,19 @@ function generateColor(hash) {
   return `hsl(${h}, 50%, 50%)`;
 }
 
+// Fixed Planet Color Mapping Dictionary
+const PLANET_COLORS = {
+  sun: '#FFF200',
+  'mercury': '#888888',
+  'venus': '#E3BB7B',
+  'mars': '#C1440E',
+  'jupiter': '#D8CA9D',
+  'saturn': '#E2BF7D',
+  'uranus': '#4B70DD',
+  'neptune': '#274687',
+  'pluto': '#C2B280'
+};
+
 function createPlanetTexture(name) {
   const key = name.toLowerCase();
   
@@ -66,16 +79,44 @@ function createPlanetTexture(name) {
   canvas.width = 512; canvas.height = 256;
   const ctx = canvas.getContext('2d');
   
-  // Custom procedural colors based on name string
-  const hash = hashCode(key);
-  ctx.fillStyle = generateColor(hash);
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  ctx.fillStyle = generateColor(hash * 2);
-  for (let i = 0; i < 40; i++) {
-    const x = Math.random() * canvas.width;
-    const y = Math.random() * canvas.height;
-    ctx.beginPath(); ctx.arc(x, y, 10 + Math.random() * 30, 0, Math.PI * 2); ctx.fill();
+  if (key === 'moon') {
+    // Moon: Highlands (#A1A1A1) and Maria (#4A4A4A)
+    ctx.fillStyle = '#A1A1A1';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#4A4A4A';
+    for (let i = 0; i < 35; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      ctx.beginPath(); 
+      ctx.arc(x, y, 15 + Math.random() * 35, 0, Math.PI * 2); 
+      ctx.fill();
+    }
+  } else if (PLANET_COLORS[key]) {
+    // Listed Planets with predefined hex colors and maintaining the procedural dot pattern style
+    ctx.fillStyle = PLANET_COLORS[key];
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    for (let i = 0; i < 35; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      ctx.beginPath(); 
+      ctx.arc(x, y, 10 + Math.random() * 30, 0, Math.PI * 2); 
+      ctx.fill();
+    }
+  } else {
+    // Fallback: Fully random procedural colors based on name string for unlisted objects
+    const hash = hashCode(key);
+    ctx.fillStyle = generateColor(hash);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = generateColor(hash * 2);
+    for (let i = 0; i < 40; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      ctx.beginPath(); ctx.arc(x, y, 10 + Math.random() * 30, 0, Math.PI * 2); ctx.fill();
+    }
   }
   
   const tex = new THREE.CanvasTexture(canvas);

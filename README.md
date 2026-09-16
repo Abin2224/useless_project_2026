@@ -1,4 +1,4 @@
-
+<img width="1535" height="863" alt="Sphere" src="https://github.com/user-attachments/assets/87b767e8-ffa7-4845-b3f0-9856f9104318" />
 # Project Name: THE ABSURD PROTOCOL 🎯
 
 An interactive suite of digital curiosities.
@@ -75,13 +75,24 @@ For Software:
 This is the homepage or the landing page of the project
 
 
-<img width="1535" height="863" alt="Cosmic_stack_output_1" src="https://github.com/user-attachments/assets/00382a1b-c84d-4dd6-8cc4-566af3b8788d" />
-<img width="1920" height="1080" alt="Cosmic_stack_putput2" src="https://github.com/user-attachments/assets/7247f351-68f4-4b3d-af6a-e96110e9a15c" />
+
+<img width="1535" height="863" alt="Cosmic_stack_output_1" src="https://github.com/user-attachments/assets/979dd7ca-9fc3-4d61-b118-f9df079238e8" />
+Number of coins it takes to reach from Earth to Moon.
+
+<img width="1535" height="863" alt="Cosmic_stack_output_2" src="https://github.com/user-attachments/assets/859f8d8b-ff04-4c0e-bab2-3a157261f8df" />
+Number of ISS takes to reach from Earth to Mars.
+
+<img width="1920" height="1080" alt="Cosmic_stack_output_3" src="https://github.com/user-attachments/assets/6dcd9c29-b675-4043-873f-2d9be85af594" />
+Number of rockets takes to reach from Kozhikode to Kottayam.
+
 These images show the working of cosmic stack. How many objects does it take to reach from a point to another point.
-The point can either be a planet or a location on earth
+The point can either be a planet or a location on earth.
 
 <img width="1536" height="775" alt="sphere_face_1" src="https://github.com/user-attachments/assets/167c9856-c46c-4d46-b444-08f5a5c5cf97" />
-Shows the cute face of the sphere
+<img width="1535" height="863" alt="Sphere" src="https://github.com/user-attachments/assets/348474d2-9f52-4c90-9af1-4ae08c565723" />
+<img width="1535" height="863" alt="sphere2" src="https://github.com/user-attachments/assets/90490784-8682-4028-9715-e8c27b9bd193" />
+Shows different cute expressions of the sphere.
+
 
 <img width="1535" height="777" alt="Height_compare" src="https://github.com/user-attachments/assets/fd2cb731-6fe5-48a5-aec1-fc42f1a478b2" />
 shows the height comparison page. Ther user entered Narendra Modi as celebrity, and their height, it shows the comparison.

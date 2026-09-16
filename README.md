@@ -1,4 +1,4 @@
-<img width="1535" height="863" alt="Sphere" src="https://github.com/user-attachments/assets/87b767e8-ffa7-4845-b3f0-9856f9104318" />
+
 # Project Name: THE ABSURD PROTOCOL 🎯
 
 An interactive suite of digital curiosities.

@@ -69,13 +69,14 @@ Open your browser and navigate to Flask's default localhost URL and port: [http:
 ### Project Documentation
 For Software:
 
-# Screenshots (Add at least 3)
-!<img width="1536" height="777" alt="Home_page" src="https://github.com/user-attachments/assets/2e93d85d-8f1c-4574-ad5f-50dc81c9d76a" />
+# Screenshots
+<img width="1536" height="777" alt="Home_page" src="https://github.com/user-attachments/assets/2e93d85d-8f1c-4574-ad5f-50dc81c9d76a" />
 
 This is the homepage or the landing page of the project
 
-!<img width="1521" height="582" alt="cosmic_stack_2" src="https://github.com/user-attachments/assets/8c01ea81-a922-48ba-94df-e2d443815a2a" />
-<img width="1523" height="743" alt="cosmic stack_1" src="https://github.com/user-attachments/assets/b5a850cf-1fa6-4cd0-9084-2ded6887c443" />
+
+<img width="1535" height="863" alt="Cosmic_stack_output_1" src="https://github.com/user-attachments/assets/00382a1b-c84d-4dd6-8cc4-566af3b8788d" />
+<img width="1920" height="1080" alt="Cosmic_stack_putput2" src="https://github.com/user-attachments/assets/7247f351-68f4-4b3d-af6a-e96110e9a15c" />
 These images show the working of cosmic stack. How many objects does it take to reach from a point to another point.
 The point can either be a planet or a location on earth
 

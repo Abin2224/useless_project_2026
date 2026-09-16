@@ -76,7 +76,7 @@
       right: 24px;
       z-index: 100;
       color: rgba(209, 219, 229, 0.55);
-      font-size: 0.8rem;
+      font-size: 1.2rem;
       text-decoration: none;
       letter-spacing: 1px;
       transition: all 0.2s ease;
@@ -1202,7 +1202,7 @@ function triggerUnlockSequence() {
       clearInterval(qTimer);
       const userVal = document.getElementById('descAnswerInput').value.toLowerCase().trim();
       const q = quizQuestions[currentQIdx];
-      if (q.keywords.some(kw => userVal.includes(kw.toLowerCase().trim()))) score++;
+      if (Array.isArray(q.keywords) && q.keywords.some(kw => userVal.includes(kw.toLowerCase().trim()))) score++;
       currentQIdx++;
       displayQuestion();
     };

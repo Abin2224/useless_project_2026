@@ -210,7 +210,9 @@ function animate() {
 }
 animate();
 
-document.getElementById('findOutBtn').addEventListener('click', async () => {
+const findOutBtn = document.getElementById('findOutBtn');
+
+findOutBtn.addEventListener('click', async () => {
   const headline = document.getElementById('resultHeadline');
   
   // UI Reset Fix
@@ -225,6 +227,8 @@ document.getElementById('findOutBtn').addEventListener('click', async () => {
     activeStageGroup.remove(activeStageGroup.children[0]);
   }
   currentStackMeshes = [];
+
+  findOutBtn.disabled = true;
   
   try {
     const res = await fetch('/api/calculate', {
@@ -252,6 +256,8 @@ document.getElementById('findOutBtn').addEventListener('click', async () => {
   } catch (err) {
     console.error("Calculation failed:", err);
     headline.textContent = "Server connection error.";
+  } finally {
+    findOutBtn.disabled = false;
   }
 });
 

@@ -38,7 +38,9 @@ function buildRuler(rangeMax, pxPerCm) {
 // Initial ruler before any comparison has been run
 buildRuler(200, MAX_FIGURE_PX / 200);
 
-document.getElementById('compareBtn').addEventListener('click', async () => {
+const compareBtn = document.getElementById('compareBtn');
+
+compareBtn.addEventListener('click', async () => {
   const celebInput = document.getElementById('celebInput').value.trim();
   const heightInput = document.getElementById('heightInput').value.trim();
   const headline = document.getElementById('resultHeadline');
@@ -62,6 +64,8 @@ document.getElementById('compareBtn').addEventListener('click', async () => {
 
   headline.textContent = `Analyzing dimensions for ${celebInput}...`;
   subtext.textContent = "Contacting archives...";
+
+  compareBtn.disabled = true;
 
   try {
     const res = await fetch('/api/height-compare', {
@@ -128,5 +132,7 @@ document.getElementById('compareBtn').addEventListener('click', async () => {
     console.error("Comparison error:", err);
     headline.textContent = "Server Error";
     subtext.textContent = "Failed to communicate with calculation service.";
+  } finally {
+    compareBtn.disabled = false;
   }
 });

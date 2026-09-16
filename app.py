@@ -5,16 +5,24 @@ import json
 import re
 from functools import lru_cache
 from flask import Flask, render_template, request, jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
-
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-#3.5, 3.6, or 3.8. If AI validation error occurs, try a different model.
+# 3.5, 3.6, or 3.8. If AI validation error occurs, try a different model.
 GEMINI_MODEL = "gemini-3.5-flash-lite" 
 
 app = Flask(__name__)
+
+# Initialize in-memory rate limiter (10 requests per minute per IP)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    storage_uri="memory://"
+)
 
 # =========================================================================
 # HELPER FUNCTIONS
@@ -22,7 +30,7 @@ app = Flask(__name__)
 
 @lru_cache(maxsize=256)
 def get_coordinates(location_name):
-    """Fetches OSM coordinates ONLY if we are certain it is on Earth."""
+    """Fetches OSM coordinates and full display name ONLY if we are certain it is on Earth."""
     if location_name.lower() == "earth":
         return None
     url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(location_name)}&format=json&limit=1"
@@ -31,7 +39,12 @@ def get_coordinates(location_name):
     try:
         response = requests.get(url, headers=headers, timeout=5).json()
         if response:
-            return {"lat": float(response[0]["lat"]), "lon": float(response[0]["lon"]), "name": response[0]["name"]}
+            return {
+                "lat": float(response[0]["lat"]),
+                "lon": float(response[0]["lon"]),
+                "name": response[0].get("name", location_name),
+                "display_name": response[0].get("display_name", location_name)
+            }
     except Exception as e:
         print(f"[!] OSM Geocoding Error: {e}")
     return None
@@ -50,6 +63,15 @@ def clean_json_string(raw_string):
     cleaned = re.sub(r'```$', '', cleaned, flags=re.MULTILINE)
     cleaned = cleaned.replace('\n', ' ').replace('\r', '').replace('\t', ' ')
     return cleaned.strip()
+
+def validate_text_input(value, max_len=120):
+    """Sanitizes text inputs to prevent prompt injection and token exhaustion."""
+    if not value or not isinstance(value, str):
+        return False
+    cleaned = value.strip()
+    if not cleaned or len(cleaned) > max_len:
+        return False
+    return cleaned
 
 def fetch_gemini_json(prompt):
     """Helper to fetch strictly formatted JSON from Gemini."""
@@ -109,14 +131,21 @@ def maker_portfolio(): return render_template("maker.html")
 # =========================================================================
 
 @app.route("/api/calculate", methods=["POST"])
+@limiter.limit("10 per minute")
 def calculate():
     data = request.get_json() or {}
-    p1 = str(data.get("origin", "")).strip()
-    p2 = str(data.get("destination", "")).strip()
-    obj_name = str(data.get("measurement_object", "")).strip()
+    
+    p1 = validate_text_input(data.get("origin"), 120)
+    if not p1:
+        return jsonify({"success": False, "error": "Invalid origin."}), 400
 
-    if not p1 or not p2 or not obj_name:
-        return jsonify({"success": False, "error": "Missing input fields."}), 400
+    p2 = validate_text_input(data.get("destination"), 120)
+    if not p2:
+        return jsonify({"success": False, "error": "Invalid destination."}), 400
+
+    obj_name = validate_text_input(data.get("measurement_object"), 120)
+    if not obj_name:
+        return jsonify({"success": False, "error": "Invalid measurement object."}), 400
 
     is_same = p1.lower() == p2.lower()
 
@@ -164,6 +193,7 @@ def calculate():
         dist_km = float(ai_data.get("distance_km", 0))
 
     dimension_meters = float(ai_data.get("object_dimension_meters", 1.0))
+    dimension_meters = max(0.0001, min(dimension_meters, 10000000.0))
     
     mode = "interplanetary"
     origin_meta = {"name": p1.title(), "type": "planet"}
@@ -171,14 +201,14 @@ def calculate():
 
     if is_terrestrial:
         mode = "terrestrial"
-        origin_meta = {"name": coords1["name"], "coords": coords1, "type": "city"}
-        dest_meta = {"name": coords2["name"], "coords": coords2, "type": "city"}
+        origin_meta = {"name": coords1.get("display_name", coords1["name"]), "coords": coords1, "type": "city"}
+        dest_meta = {"name": coords2.get("display_name", coords2["name"]), "coords": coords2, "type": "city"}
     elif coords1:
         mode = "hybrid"
-        origin_meta = {"name": coords1["name"], "coords": coords1, "type": "city"}
+        origin_meta = {"name": coords1.get("display_name", coords1["name"]), "coords": coords1, "type": "city"}
     elif coords2:
         mode = "hybrid"
-        dest_meta = {"name": coords2["name"], "coords": coords2, "type": "city"}
+        dest_meta = {"name": coords2.get("display_name", coords2["name"]), "coords": coords2, "type": "city"}
 
     dist_meters = dist_km * 1000.0
     total_count = math.ceil(dist_meters / dimension_meters) if dimension_meters > 0 else 0
@@ -194,6 +224,7 @@ def calculate():
 # =========================================================================
 
 @app.route("/api/rabbit/generate", methods=["GET"])
+@limiter.limit("10 per minute")
 def rabbit_generate():
     try:
         wiki_url = "https://en.wikipedia.org/w/api.php?action=query&format=json&generator=random&grnnamespace=0&prop=info|extracts&exintro=false&explaintext=true"
@@ -291,12 +322,16 @@ def rabbit_roast():
 @app.route("/api/height-compare", methods=["POST"])
 def api_height_compare():
     data = request.get_json() or {}
-    celeb_name = str(data.get("celebrity", "")).strip()
+    celeb_name = validate_text_input(data.get("celebrity"), 120)
+    if not celeb_name:
+        return jsonify({"success": False, "error": "Invalid celebrity name."}), 400
+
     user_height_str = str(data.get("user_height", "")).strip()
 
     try:
         user_height_cm = float(user_height_str)
-        if user_height_cm <= 0: raise ValueError
+        if not math.isfinite(user_height_cm) or not (0 < user_height_cm <= 1000):
+            raise ValueError
     except ValueError:
         return jsonify({"success": False, "error": "Invalid height."}), 400
 
@@ -336,6 +371,7 @@ def api_height_compare():
         "comparison_text": f"You are {abs(diff)} cm {'taller' if diff > 0 else 'shorter'} than {wiki_title}." if diff != 0 else f"You are exactly the same height as {wiki_title}!"
     })
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug_mode = os.environ.get("DEBUG", "False").lower() in ("true", "1", "t", "yes")
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)
